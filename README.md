@@ -4,7 +4,7 @@ Essentially an excuse to learn and implement the (simplest version of the) FFT a
 
 Uses SDL2 to record audio and performs FFT on it. Then "plots" a spectral histogram to the console with linear, semilog, or log-log scaling. And repeat.
 
-Uses `GetConsoleScreenBufferInfo()` to find console dimensions and scales graph accordingly. Uses `system("cls")` to refresh the console between frames. Which is not great, but eh.
+Uses `GetConsoleScreenBufferInfo()` to find console dimensions and scale graph accordingly. Uses `system("cls")` to refresh the console between frames. Which is not great, but eh.
 
 <img width="663" alt="sc2" src="https://github.com/RandomVertebrate/console-audioSpectra/assets/54997017/afde5d69-ce84-4a63-a891-2932ca87a1c1">
 
