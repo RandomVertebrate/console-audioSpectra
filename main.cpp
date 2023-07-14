@@ -1,52 +1,68 @@
 #include <iostream>
 #include <math.h>
 #include <complex>
-#include <stdlib.h>
-#include <random>
 #include <windows.h>
 #include <SDL2/SDL.h>
 
-#define RATE 44100
-#define CHUNK 64
-#define CHANNELS 1
-#define FORMAT AUDIO_S16SYS
+#define RATE 44100                      /// Sample rate
+#define CHUNK 64                        /// Buffer size
+#define CHANNELS 1                      /// Mono audio
+#define FORMAT AUDIO_S16SYS             /// Sample format: signed system-endian 16 bit integers
+#define MAX_SAMPLE_VALUE 32767          /// Max sample value based on sample datatype
 
-#define FFTLEN 65536
+#define FFTLEN 65536                    /// Number of samples to perform FFT on. Must be power of 2.
 
-typedef short sample;
-typedef std::complex<double> cmplx;
+typedef short sample;                   /// Datatype of samples. Also used to store frequency coefficients.
+typedef std::complex<double> cmplx;     /// Complex number datatype for fft
 
-float echoVolume;
+float echoVolume;                       /// Anything recorded is immediately (-ish) played back at this volume.
 
+/**
+------------------------
+----class AudioQueue----
+------------------------
+SDL doesn't seem to have internal recording and playback queues, so this.
+Why audio queues are needed:
+Audio recording/playback happens "in the background", i.e. on a different thread:
+    - Whenever new audio data enters the sound card (from the microphone), the
+      sound card will call a callback function and pass this data to it.
+    - Whenever the sound card requires new data to send (to the speakers), it will
+      call a callback function and expect to be provided with as much data as it
+      requires.
+These things happen at unpredictable times since they are tied to audio sample rates
+etc. rather than the clock speed.
+Reading and writing audio data from and to a queue helps prevent threading problems
+such as skipping/repeating samples or getting more or less data than expected.
+**/
 class AudioQueue
 {
-    int len;
-    sample *audio;
-    int inpos;
-    int outpos;
+    int len;                                                            /// Maximum length of queue
+    sample *audio;                                                      /// Pointer to audio data array
+    int inpos;                                                          /// Index in audio[] of back of queue
+    int outpos;                                                         /// Index in audio[] of front of queue
   public:
-    AudioQueue(int QueueLength = 10000)
+    AudioQueue(int QueueLength = 10000)                                 /// Constructor. Takes maximum length.
     {
         len = QueueLength;
-        audio = new sample[len];
-        inpos = 0;
-        outpos = 0;
+        audio = new sample[len];                                        /// Initializing audio data array.
+        inpos = 0;                                                      /// Front and back both set to zero. Setting them 1 sample apart doesn't really make sense
+        outpos = 0;                                                     /// because several samples will be pushed or popped at once.
     }
-    bool data_available(int n_samples = 1)
+    bool data_available(int n_samples = 1)                              /// Check if the queue has n_samples of data in it.
     {
         if(inpos>=outpos)
             return (inpos-outpos)>=n_samples;
         else
             return (inpos+len-outpos)>=n_samples;
     }
-    bool space_available(int n_samples = 1)
+    bool space_available(int n_samples = 1)                             /// Check if the queue has space for n_samples of new data.
     {
         if(inpos>=outpos)
             return (outpos+len-inpos)>n_samples;
         else
             return (outpos-inpos)>n_samples;
     }
-    void push(sample* input, int n_samples, float volume=1)
+    void push(sample* input, int n_samples, float volume=1)             /// Push n_samples of new data to the queue
     {
         if(!space_available(n_samples))
         {
@@ -57,7 +73,7 @@ class AudioQueue
             audio[(inpos+i)%len] = input[i]*volume;
         inpos=(inpos+n_samples)%len;
     }
-    void pop(sample* output, int n_samples, float volume=1)
+    void pop(sample* output, int n_samples, float volume=1)             /// Pop n_samples of data from the queue
     {
         if(!data_available(n_samples))
         {
@@ -68,7 +84,7 @@ class AudioQueue
             output[i] = audio[(outpos+i)%len]*volume;
         outpos=(outpos+n_samples)%len;
     }
-    void peek(sample* output, int n_samples, float volume=1)
+    void peek(sample* output, int n_samples, float volume=1)            /// Peek the n_samples that would be popped
     {
         if(!data_available(n_samples))
         {
@@ -78,7 +94,8 @@ class AudioQueue
         for(int i=0; i<n_samples; i++)
             output[i] = audio[(outpos+i)%len]*volume;
     }
-    void peekFreshData(sample* output, int n_samples, float volume=1)
+    void peekFreshData(sample* output, int n_samples, float volume=1)   /// Peek the freshest n_samples (for instantly reactive FFT)
+
     {
         if(!data_available(n_samples))
         {
@@ -90,21 +107,35 @@ class AudioQueue
     }
 };
 
-AudioQueue MainAudioQueue(10000000);
+AudioQueue MainAudioQueue(10000000);    /// Main queue. Recorded Audio is pushed, popped audio is played, and peeked audio is FFT'd.
 
+/**
+--------------------------
+----Callback Functions----
+--------------------------
+Callback functions are called by the sound card from a parallel thread.
+
+When the sound card has new mic data to report, it calls the recording
+callback function and passes it a pointer Uint8* stream to this new data.
+It also passes int streamLength, the number of bytes of new data.
+
+When the sound card requires new data to play, it calls the playback
+callback function and passes it a pointer Uint8* stream to where it wishes
+this data to be written.
+It also passes int streamLength, the number of bytes of data required.
+**/
 void RecCallback(void* userdata, Uint8* stream, int streamLength)
 {
     Uint32 length = (Uint32)streamLength;
     MainAudioQueue.push((sample*)stream, length/sizeof(sample));
 }
-
 void PlayCallback(void* userdata, Uint8* stream, int streamLength)
 {
     Uint32 length = (Uint32)streamLength;
     MainAudioQueue.pop((sample*)stream, length/sizeof(sample), ::echoVolume);
 }
 
-void dftmag(sample* output, sample* input, int n)
+void dftmag(sample* output, sample* input, int n)                       /// O(n^2) DFT. Not actually used.
 {
     float* sinArr = new float[n];
     float* cosArr = new float[n];
@@ -129,7 +160,8 @@ void dftmag(sample* output, sample* input, int n)
             output[i]+=(input[j]*sinArr[(i+1)*j%n]);
             outputcos[i]+=(input[j]*cosArr[(i+1)*j%n]);
         }
-        output[i] = (sample)sqrt(output[i]*output[i] + outputcos[i]*outputcos[i]);
+        output[i] = (sample)sqrt(output[i]*output[i]
+                                 + outputcos[i]*outputcos[i]);
         if(output[i]<0)
         {
             std::cout<<"\n\nNEGATIVE SQRT RESULT\n\n";
@@ -138,27 +170,7 @@ void dftmag(sample* output, sample* input, int n)
     }
 }
 
-void show_bargraph(int bars[], int n_bars, int maxval=50, int hScale = 1, float vScale = 1, char symbol='|')
-{
-    for(int i=maxval; i>=0; i--)
-    {
-        for(int j=0; j<n_bars; j++)
-            if(bars[j]*vScale>i)
-                for(int k=0; k<hScale; k++)
-                    std::cout<<symbol;
-            else
-                for(int k=0; k<hScale; k++)
-                    std::cout<<" ";
-        std::cout<<"\n";
-    }
-
-    for(int j=0; j<n_bars; j++)
-        for(int k=0; k<hScale; k++)
-            std::cout<<symbol;
-
-}
-
-void fft(cmplx* output, cmplx* input, int n)
+void fft(cmplx* output, cmplx* input, int n)                            /// Simplest FFT algorithm
 {
     /*
     cout<<"\nFFT called on input ";
@@ -194,64 +206,125 @@ void fft(cmplx* output, cmplx* input, int n)
     return;
 }
 
+void show_bargraph(int bars[], int n_bars, int height=50,               /// Histogram plotter
+                   int hScale = 1, float vScale = 1, char symbol='|')
+{
+    for(int i=height; i>=0; i--)                                        /// Iterating through rows (height is the number of rows)
+    {
+        for(int j=0; j<n_bars; j++)                                     /// Iterating through columns
+            if(bars[j]*vScale>i)                                        /// Print symbols if (row, column) is below (bar value, column)
+                for(int k=0; k<hScale; k++)
+                    std::cout<<symbol;
+            else                                                        /// Else print whitespaces
+                for(int k=0; k<hScale; k++)
+                    std::cout<<" ";
+        std::cout<<"\n";                                                /// Next row
+    }
+
+    for(int j=0; j<n_bars*hScale; j++)                                  /// Add extra line of symbols at the bottom
+        std::cout<<symbol;
+
+}
+
+/**
+----FindFrequencyContent()----
+Takes pointer to an array of audio samples, performs FFT, and outputs magnitude of
+complex coefficients.
+i.e., it give amplitude but not phase of frequency components in given audio.
+**/
 void FindFrequencyContent(sample* output, sample* input, int n)
 {
     cmplx* fftin = new cmplx[n];
     cmplx* fftout = new cmplx[n];
-    for(int i=0; i<n; i++)
+    for(int i=0; i<n; i++)                                              /// Convert input to complex
         fftin[i] = (cmplx)input[i];
-    fft(fftout, fftin, n);
-    for(int i=0; i<n; i++)
-        output[i] = (sample)(abs(fftout[i])/200);
+    fft(fftout, fftin, n);                                              /// FFT
+    for(int i=0; i<n; i++)                                              /// Convert output to real samples
+    {
+        double currentvalue = abs(fftout[i])/200;
+        output[i] = (sample)(currentvalue>MAX_SAMPLE_VALUE ? MAX_SAMPLE_VALUE : currentvalue);
+    }
 }
 
-float maplog2lin(float logmin, float logrange, float linmin, float linrange, float logval)
+/**
+----float mapLin2Log()----
+Maps linear axis to log axis.
+If graph A has a linearly scaled x-axis and graph B has a logarithmically scaled x-axis
+then this function gives the x-coordinate in B corresponding to some x-coordinate in A.
+**/
+float mapLin2Log(float LinMin, float LinRange, float LogMin, float LogRange, float LinVal)
 {
-    return linmin+(log(logval+1-logmin)/log(logrange+logmin))*linrange;
+    return LogMin+(log(LinVal+1-LinMin)/log(LinRange+LinMin))*LogRange;
 }
 
-void startSemilogVisualizer(int minfreq, int maxfreq, int iterations, bool adaptive = false, int delayMicroseconds = 10, float graphScale = 0.0008)
+/**
+--------------------------------------
+----Visualizer Function Parameters----
+--------------------------------------
+minfreq and maxfreq are the horizontal (frequency) bounds of the spectral histogram.
+
+adaptive sets whether to continually adjust vertical scaling to fit and fill console
+window.
+
+iterations is the total number of refresh cycles before function return.
+
+delayMicroseconds sets the visualizer refresh rate or "frame rate".
+
+graphScale sets the vertical scale of data relative to the console window height.
+Irrelevant if adaptive is enabled.
+**/
+
+void startSemilogVisualizer(int minfreq, int maxfreq, int iterations, bool adaptive = false,
+                            int delayMicroseconds = 10, float graphScale = 0.0008)
 {
-    sample workingBuffer[FFTLEN];
-    sample spectrum[FFTLEN];
+    sample workingBuffer[FFTLEN];                                       /// Array to hold audio
+    sample spectrum[FFTLEN];                                            /// Array to hold FFT coefficient magnitudes
 
-    int numbars;
-    int graphheight;
+    int numbars;                                                        /// Number of bars in the histogram. Will be set to console window width.
+    int graphheight;                                                    /// Height of histogram in lines. Will be set to console window height.
 
-    int bargraph[1000];
+    int bargraph[1000];                                                 /// The histogram
 
-    int Freq0idx = (double)minfreq*(double)FFTLEN/(double)RATE;
-    int FreqLidx = (double)maxfreq*(double)FFTLEN/(double)RATE;
+    int Freq0idx = (double)minfreq*(double)FFTLEN/(double)RATE;         /// Index in spectrum[] corresponding to minfreq
+    int FreqLidx = (double)maxfreq*(double)FFTLEN/(double)RATE;         /// Index in spectrum[] corresponding to maxfreq
 
-    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    CONSOLE_SCREEN_BUFFER_INFO csbi;                                    /// Console object to retrieve console window size for graph scaling
 
     for(int i=0; i<iterations; i++)
     {
-        if(i%10==0)
+        if(i%10==0)                                                     /// Every 10 iterations, get window size and update graph scaling
         {
             GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
             numbars = csbi.srWindow.Right - csbi.srWindow.Left;
             graphheight = csbi.srWindow.Bottom - csbi.srWindow.Top;
         }
 
-        MainAudioQueue.peekFreshData(workingBuffer, FFTLEN);
-        FindFrequencyContent(spectrum, workingBuffer, FFTLEN);
+        MainAudioQueue.peekFreshData(workingBuffer, FFTLEN);            /// Get audio
+        FindFrequencyContent(spectrum, workingBuffer, FFTLEN);          /// Spectral analysis
         //dftmag(spectrum, workingBuffer, FFTLEN);
 
-        for(int i=0; i<numbars; i++)
+        for(int i=0; i<numbars; i++)                                    /// Initialize histogram to zeros
             bargraph[i]=0;
 
+        /// Now mapping spectrum to histogram
         for(int i=Freq0idx; i<FreqLidx; i++)
         {
-            int index = (int)maplog2lin(Freq0idx, FreqLidx-Freq0idx, 0, numbars, i);
+            int index = (int)mapLin2Log(Freq0idx, FreqLidx-Freq0idx, 0, numbars, i);
+            /// For semilog scaling:
+            /// The number of elements spectrum[i] that map to a certain bargraph[index] is
+            /// roughly proportional to i.
+            /// So, divide spectrum[i] by i before adding it to bargraph[index].
             bargraph[index]+=spectrum[i]/i;
         }
         //std::cout<<"\n";
 
+        /// Now filling in the x-axis gaps left by the mapping.
+        /// Using arithmetic mean for smoothing.
         for(int i=1; i<numbars-1; i++)
             if(bargraph[i]==0)
                 bargraph[i]=(bargraph[i-1]+bargraph[i+1])/2;
 
+        /// If adaptive find max value in bargraph[] and update graphScale to fit data on screen.
         if(adaptive)
         {
             int maxv = bargraph[0];
@@ -263,13 +336,16 @@ void startSemilogVisualizer(int minfreq, int maxfreq, int iterations, bool adapt
             graphScale = 1/(float)maxv;
         }
 
-        system("cls");
-        show_bargraph(bargraph, numbars, graphheight, 1, graphScale*graphheight, ':');
+        system("cls");                                                  /// Clear screen in preparation for spectrum plotting. Bit ugly, computation wise.
+        show_bargraph(bargraph, numbars, graphheight,
+                      1, graphScale*graphheight, ':');
+
         SDL_Delay(delayMicroseconds);
     }
 }
 
-void startLinearVisualizer(int minfreq, int maxfreq, int iterations, bool adaptive = false, int delayMicroseconds = 10, float graphScale = 0.0008)
+void startLinearVisualizer(int minfreq, int maxfreq, int iterations, bool adaptive = false,
+                           int delayMicroseconds = 10, float graphScale = 0.0008)
 {
     sample workingBuffer[FFTLEN];
     sample spectrum[FFTLEN];
@@ -304,7 +380,11 @@ void startLinearVisualizer(int minfreq, int maxfreq, int iterations, bool adapti
 
         for(int i=Freq0idx; i<FreqLidx; i++)
         {
-            int index = (int)(numbars*(i-Freq0idx)/(FreqLidx-Freq0idx));
+            int index = (int)(numbars*(i-Freq0idx)/(FreqLidx-Freq0idx));    /// Linear mapping instead of logarithmic
+            /// For linear scaling:
+            /// The number of elements spectrum[i] that map to a certain bargraph[index] is
+            /// fixed, and equal to bucketwidth.
+            /// So, divide spectrum[i] by bucketwidth before adding it to bargraph[index].
             bargraph[index]+=spectrum[i]/bucketwidth;
         }
         //std::cout<<"\n";
@@ -330,7 +410,8 @@ void startLinearVisualizer(int minfreq, int maxfreq, int iterations, bool adapti
     }
 }
 
-void startLoglogVisualizer(int minfreq, int maxfreq, int iterations, bool adaptive = false, int delayMicroseconds = 10, float graphScale = 0.0008)
+void startLoglogVisualizer(int minfreq, int maxfreq, int iterations, bool adaptive = false,
+                           int delayMicroseconds = 10, float graphScale = 0.0008)
 {
     sample workingBuffer[FFTLEN];
     sample spectrum[FFTLEN];
@@ -363,15 +444,18 @@ void startLoglogVisualizer(int minfreq, int maxfreq, int iterations, bool adapti
 
         for(int i=Freq0idx; i<FreqLidx; i++)
         {
-            int index = (int)maplog2lin(Freq0idx, FreqLidx-Freq0idx, 0, numbars, i);
+            int index = (int)mapLin2Log(Freq0idx, FreqLidx-Freq0idx, 0, numbars, i);
             bargraph[index]+=spectrum[i]/i;
         }
         //std::cout<<"\n";
 
+        /// Arithmetic-mean smoothing doesn't work well for log-log scaling.
+        /// Gap filling is instead done by simply copying the bar on the right.
         for(int i=numbars-2; i>0; i--)
             if(bargraph[i]==0)
                 bargraph[i]=bargraph[i+1];
 
+        /// Log-scaling data (log base 1.01)
         for(int i=0; i<numbars; i++)
             bargraph[i]=log(bargraph[i])/log(1.01);
 
@@ -410,7 +494,7 @@ void startTuner(int iterations, bool adaptive = false, int delayMicroseconds = 1
         {
             GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
             numbars = csbi.srWindow.Right - csbi.srWindow.Left;
-            graphheight = csbi.srWindow.Bottom - csbi.srWindow.Top - 1;
+            graphheight = csbi.srWindow.Bottom - csbi.srWindow.Top - 1;         /// minus 1 to leave room for pitch letter names at bottom
         }
 
         MainAudioQueue.peekFreshData(workingBuffer, FFTLEN);
@@ -420,15 +504,28 @@ void startTuner(int iterations, bool adaptive = false, int delayMicroseconds = 1
         for(int i=0; i<numbars; i++)
             bargraph[i]=0;
 
+        /// PREPARING TUNER HISTOGRAM
+        /// Iterating through log-scaled output indices and mapping them to linear input indices
+        /// (instead of the other way round).
+        /// So, an exponential mapping.
         for(int i=0; i<numbars-1; i++)
         {
-            int index = 55*pow(2, (float)i/numbars)*FFTLEN/RATE;
-            int nextindex = 55*pow(2, (float)(i+1)/numbars)*FFTLEN/RATE;
-            for(int j=0; j<8; j++)
+            /// The entire x-axis of the histogram is to span one octave i.e. an interval of 2.
+            /// Therefore, each bar index increment corresponds to an interval of 2^(1/numbars).
+            /// The first frequency is A1 = 55Hz.
+            /// So the ith frequency is 55Hz*2^(i/numbars).
+            float index = 55*pow(2, (float)i/numbars)*FFTLEN/RATE;              /// "Fractional index" in spectrum[] corresponding to ith frequency.
+            float nextindex = 55*pow(2, (float)(i+1)/numbars)*FFTLEN/RATE;      /// "Fractional index" corresponding to (i+1)th frequency.
+            /// OCTAVE WRAPPING
+            for(int j=0; j<8; j++)                                              /// Iterating through 8 octaves
             {
                 //std::cout<<"\ni "<<i<<", index "<<index<<", next index "<<nextindex;
-                for(int k=index; k<nextindex; k++)
-                    bargraph[i]+=0.02*spectrum[k]/(1+nextindex-index);
+                /// Add everything in spectrum[] between current index and next index to current histogram bar.
+                for(int k=round(index); k<round(nextindex); k++)                /// Fractional indices must be rounded for use
+                    /// There are (nextindex-index) additions for a particular bar, so divide each addition by this.
+                    bargraph[i]+=0.02*spectrum[k]/(nextindex-index);
+
+                /// Frequency doubles with octave increment, so index in linearly spaced data also doubles.
                 index*=2;
                 nextindex*=2;
             }
@@ -449,6 +546,7 @@ void startTuner(int iterations, bool adaptive = false, int delayMicroseconds = 1
         system("cls");
         show_bargraph(bargraph, numbars, graphheight, 1, graphScale*graphheight, '=');
 
+        /// PRINTING PITCH LETTER NAMES
         int semitonespaces = round((float)(numbars-12)/(float)12);
         std::cout<<"\n";
         std::cout<<"A"; for(int i=0; i<semitonespaces; i++) std::cout<<" ";
@@ -470,19 +568,23 @@ void startTuner(int iterations, bool adaptive = false, int delayMicroseconds = 1
 
 int main(int argc, char** argv)
 {
-    SDL_Init(SDL_INIT_AUDIO);
+    SDL_Init(SDL_INIT_AUDIO);                                       /// Initialize SDL audio
 
-    SDL_AudioSpec RecAudiospec, PlayAudiospec;
+    SDL_AudioSpec RecAudiospec, PlayAudiospec;                      /// SDL_AudioSpec objects used to tell SDL sample rate, buffer size etc.
+
+    /// Setting audio parameters
     RecAudiospec.freq = RATE;
     RecAudiospec.format = AUDIO_S16SYS;
     RecAudiospec.samples = CHUNK;
-    RecAudiospec.callback = RecCallback;
+    RecAudiospec.callback = RecCallback;                            /// Callback functions also passed to SDL through SDL_AudioSpec objects
     PlayAudiospec = RecAudiospec;
     PlayAudiospec.callback = PlayCallback;
 
+    /// Opening two audio devices, one for recording and one for playback.
     SDL_AudioDeviceID PlayDevice = SDL_OpenAudioDevice(NULL, 0, &PlayAudiospec, NULL, 0);
     SDL_AudioDeviceID RecDevice = SDL_OpenAudioDevice(NULL, 1, &RecAudiospec, NULL, 0);
 
+    /// Error messages if audio devices could not be opened
     if(PlayDevice <= 0)
         std::cerr<<"Playback device not opened: "<<SDL_GetError()<<"\n";
     if(RecDevice <= 0)
@@ -491,10 +593,11 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    SDL_PauseAudioDevice(RecDevice, 0);
-    SDL_Delay(1500);
-    SDL_PauseAudioDevice(PlayDevice, 0);
+    SDL_PauseAudioDevice(RecDevice, 0);                             /// Start recording
+    SDL_Delay(1500);                                                /// Allow some time for audio queue to fill up
+    SDL_PauseAudioDevice(PlayDevice, 0);                            /// Start playback
 
+    /// Menu
     int ans, lim1, lim2;
     std::cout<<"\nVisualizer scaling options:"
         <<"\n1. Fixed semilog"
@@ -528,6 +631,16 @@ int main(int argc, char** argv)
         case 8: startTuner(1000, true); break;
         default: return 0;
     }
+
+    /// Close audio devices
+    SDL_CloseAudioDevice(PlayDevice);
+    SDL_CloseAudioDevice(RecDevice);
+    /**
+    ISSUE:
+    no clean way to exit during execution.
+    Audio devices expected not to be closed properly if the process is killed.
+    Thankfully Windows seems to make it alright (daemons or something idk)
+    **/
 
     return 0;
 }
