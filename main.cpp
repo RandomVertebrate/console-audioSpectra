@@ -48,6 +48,10 @@ class AudioQueue
         inpos = 0;                                                      /// Front and back both set to zero. Setting them 1 sample apart doesn't really make sense
         outpos = 0;                                                     /// because several samples will be pushed or popped at once.
     }
+    ~AudioQueue()
+    {
+        delete[] audio;
+    }
     bool data_available(int n_samples = 1)                              /// Check if the queue has n_samples of data in it.
     {
         if(inpos>=outpos)
@@ -168,6 +172,9 @@ void dftmag(sample* output, sample* input, int n)                       /// O(n^
             return;
         }
     }
+    delete[] sinArr;
+    delete[] cosArr;
+    delete[] outputcos;
 }
 
 void fft(cmplx* output, cmplx* input, int n)                            /// Simplest FFT algorithm
@@ -203,6 +210,11 @@ void fft(cmplx* output, cmplx* input, int n)                            /// Simp
         output[i+n/2] = evenOut[i] - t;
     }
 
+    delete[] even;
+    delete[] odd;
+    delete[] evenOut;
+    delete[] oddOut;
+
     return;
 }
 
@@ -224,26 +236,36 @@ void FindFrequencyContent(sample* output, sample* input, int n)
         double currentvalue = abs(fftout[i])/200;
         output[i] = (sample)(currentvalue>MAX_SAMPLE_VALUE ? MAX_SAMPLE_VALUE : currentvalue);
     }
+
+    delete[] fftin;
+    delete[] fftout;
 }
 
 void show_bargraph(int bars[], int n_bars, int height=50,               /// Histogram plotter
                    int hScale = 1, float vScale = 1, char symbol='|')
 {
+    char* Graph = new char[2*(n_bars+1)*(height+1)+1];                  /// String that will be printed
+    int chnum = 0;                                                      /// Number of characters added to string Graph
     for(int i=height; i>=0; i--)                                        /// Iterating through rows (height is the number of rows)
     {
         for(int j=0; j<n_bars; j++)                                     /// Iterating through columns
-            if(bars[j]*vScale>i)                                        /// Print symbols if (row, column) is below (bar value, column)
+            if(bars[j]*vScale>i)                                        /// Add symbols to string if (row, column) is below (bar value, column)
                 for(int k=0; k<hScale; k++)
-                    std::cout<<symbol;
-            else                                                        /// Else print whitespaces
+                    Graph[chnum++] = symbol;
+            else                                                        /// Else add whitespaces
                 for(int k=0; k<hScale; k++)
-                    std::cout<<" ";
-        std::cout<<"\n";                                                /// Next row
+                    Graph[chnum++] = ' ';
+        Graph[chnum++] = '\n';                                          /// Next row
     }
 
     for(int j=0; j<n_bars*hScale; j++)                                  /// Add extra line of symbols at the bottom
-        std::cout<<symbol;
+        Graph[chnum++] = symbol;
 
+    Graph[chnum++] = '\0';                                              /// Null-terminate string
+
+    std::cout<<Graph;                                                   /// Print to console
+
+    delete[] Graph;
 }
 
 /**
