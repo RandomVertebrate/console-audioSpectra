@@ -206,26 +206,6 @@ void fft(cmplx* output, cmplx* input, int n)                            /// Simp
     return;
 }
 
-void show_bargraph(int bars[], int n_bars, int height=50,               /// Histogram plotter
-                   int hScale = 1, float vScale = 1, char symbol='|')
-{
-    for(int i=height; i>=0; i--)                                        /// Iterating through rows (height is the number of rows)
-    {
-        for(int j=0; j<n_bars; j++)                                     /// Iterating through columns
-            if(bars[j]*vScale>i)                                        /// Print symbols if (row, column) is below (bar value, column)
-                for(int k=0; k<hScale; k++)
-                    std::cout<<symbol;
-            else                                                        /// Else print whitespaces
-                for(int k=0; k<hScale; k++)
-                    std::cout<<" ";
-        std::cout<<"\n";                                                /// Next row
-    }
-
-    for(int j=0; j<n_bars*hScale; j++)                                  /// Add extra line of symbols at the bottom
-        std::cout<<symbol;
-
-}
-
 /**
 ----FindFrequencyContent()----
 Takes pointer to an array of audio samples, performs FFT, and outputs magnitude of
@@ -244,6 +224,26 @@ void FindFrequencyContent(sample* output, sample* input, int n)
         double currentvalue = abs(fftout[i])/200;
         output[i] = (sample)(currentvalue>MAX_SAMPLE_VALUE ? MAX_SAMPLE_VALUE : currentvalue);
     }
+}
+
+void show_bargraph(int bars[], int n_bars, int height=50,               /// Histogram plotter
+                   int hScale = 1, float vScale = 1, char symbol='|')
+{
+    for(int i=height; i>=0; i--)                                        /// Iterating through rows (height is the number of rows)
+    {
+        for(int j=0; j<n_bars; j++)                                     /// Iterating through columns
+            if(bars[j]*vScale>i)                                        /// Print symbols if (row, column) is below (bar value, column)
+                for(int k=0; k<hScale; k++)
+                    std::cout<<symbol;
+            else                                                        /// Else print whitespaces
+                for(int k=0; k<hScale; k++)
+                    std::cout<<" ";
+        std::cout<<"\n";                                                /// Next row
+    }
+
+    for(int j=0; j<n_bars*hScale; j++)                                  /// Add extra line of symbols at the bottom
+        std::cout<<symbol;
+
 }
 
 /**
