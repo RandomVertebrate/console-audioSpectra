@@ -503,10 +503,14 @@ void startTuner(int iterations, bool adaptive = false, int delayMicroseconds = 1
     sample workingBuffer[FFTLEN];
     sample spectrum[FFTLEN];
 
-    int numbars;
-    int graphheight;
+    int numbars = 0;
+    int new_numbars = 0;
+    int graphheight = 0;
 
     int bargraph[1000];
+    float octave1index[1000];                                                   /// Will hold "fractional indices" in spectrum[] that map to each bar
+
+    char pitchnames[1000] = "AA#BCC#DD#EFF#GG#";                                /// Will be updated with appropriate spacing as per window size.
 
     CONSOLE_SCREEN_BUFFER_INFO csbi;
 
@@ -515,8 +519,54 @@ void startTuner(int iterations, bool adaptive = false, int delayMicroseconds = 1
         if(i%10==0)
         {
             GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
-            numbars = csbi.srWindow.Right - csbi.srWindow.Left;
-            graphheight = csbi.srWindow.Bottom - csbi.srWindow.Top - 1;         /// minus 1 to leave room for pitch letter names at bottom
+            new_numbars = csbi.srWindow.Right - csbi.srWindow.Left;
+            graphheight = csbi.srWindow.Bottom - csbi.srWindow.Top - 3;         /// Minus 3 to leave room for pitch names scale
+
+            /// If the window width has changed, then the following needs to be changed:
+            /// 1. The frequency corresponding to each bar
+            /// 2. The indices in spectrum[] that correspond to these frequencies
+            /// 3. The pitch names string
+            if(new_numbars!=numbars)
+            {
+                numbars = new_numbars;
+
+                /// UPDATING FIRST-OCTAVE INDICES
+                /// The entire x-axis of the histogram is to span one octave i.e. an interval of 2.
+                /// Therefore, each bar index increment corresponds to an interval of 2^(1/numbars).
+                /// The first frequency is A1 = 55Hz.
+                /// So the ith frequency is 55Hz*2^(i/numbars).
+                for(int i=0; i<numbars+1; i++)
+                    octave1index[i] = 55*pow(2, (float)i/numbars)*FFTLEN/RATE;  /// "Fractional index" in spectrum[] corresponding to ith frequency.
+
+                /// UPDATING PITCH NAMES STRING
+                int chnum = 0;
+                /// Adding pitch letter names
+                int semitonespaces = round((float)(numbars-12)/(float)12);
+                pitchnames[chnum++]='A'; for(int i=0; i<semitonespaces; i++) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='A'; pitchnames[chnum++]='#'; for(int i=0; i<semitonespaces-1; i++) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='B'; for(int i=0; i<semitonespaces; i++) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='C'; for(int i=0; i<semitonespaces; i++) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='C'; pitchnames[chnum++]='#'; for(int i=0; i<semitonespaces-1; i++) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='D'; for(int i=0; i<semitonespaces; i++) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='D'; pitchnames[chnum++]='#'; for(int i=0; i<semitonespaces-1; i++) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='E'; for(int i=0; i<semitonespaces; i++) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='F'; for(int i=0; i<semitonespaces; i++) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='F'; pitchnames[chnum++]='#'; for(int i=0; i<semitonespaces-1; i++) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='G'; for(int i=0; i<semitonespaces; i++) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='G'; pitchnames[chnum++]='#'; pitchnames[chnum++]='\n';
+                /// Adding row of dots
+                for(int i=0; i<11; i++)                                         /// Adding 11 pipes and corresponding dots
+                {
+                    pitchnames[chnum++]='|';
+                    for(int j=0; j<semitonespaces; j++)
+                        pitchnames[chnum++]='.';
+                }
+                pitchnames[chnum++]='|';                                        /// Adding the last pipe
+                for(int i=11*(semitonespaces+1); i<numbars; i++)                /// Filling remaining space with dots
+                    pitchnames[chnum++]='.';
+                pitchnames[chnum++]='\n';
+                pitchnames[chnum++]='\0';
+            }
         }
 
         MainAudioQueue.peekFreshData(workingBuffer, FFTLEN);
@@ -532,13 +582,12 @@ void startTuner(int iterations, bool adaptive = false, int delayMicroseconds = 1
         /// So, an exponential mapping.
         for(int i=0; i<numbars-1; i++)
         {
-            /// The entire x-axis of the histogram is to span one octave i.e. an interval of 2.
-            /// Therefore, each bar index increment corresponds to an interval of 2^(1/numbars).
-            /// The first frequency is A1 = 55Hz.
-            /// So the ith frequency is 55Hz*2^(i/numbars).
-            float index = 55*pow(2, (float)i/numbars)*FFTLEN/RATE;              /// "Fractional index" in spectrum[] corresponding to ith frequency.
-            float nextindex = 55*pow(2, (float)(i+1)/numbars)*FFTLEN/RATE;      /// "Fractional index" corresponding to (i+1)th frequency.
+            float index = octave1index[i];                                      /// "Fractional index" in spectrum[] corresponding to ith frequency.
+            float nextindex = octave1index[i+1];                                /// "Fractional index" corresponding to (i+1)th frequency.
             /// OCTAVE WRAPPING
+            /// To the frequency coefficient for any frequency F will be added:
+            /// The frequency coefficients of all frequencies F*2^n for n=1..8
+            /// (i.e., 8 octaves of the same-letter pitch)
             for(int j=0; j<8; j++)                                              /// Iterating through 8 octaves
             {
                 //std::cout<<"\ni "<<i<<", index "<<index<<", next index "<<nextindex;
@@ -566,23 +615,8 @@ void startTuner(int iterations, bool adaptive = false, int delayMicroseconds = 1
         }
 
         system("cls");
+        std::cout<<pitchnames;
         show_bargraph(bargraph, numbars, graphheight, 1, graphScale*graphheight, '=');
-
-        /// PRINTING PITCH LETTER NAMES
-        int semitonespaces = round((float)(numbars-12)/(float)12);
-        std::cout<<"\n";
-        std::cout<<"A"; for(int i=0; i<semitonespaces; i++) std::cout<<" ";
-        std::cout<<"A#"; for(int i=0; i<semitonespaces-1; i++) std::cout<<" ";
-        std::cout<<"B"; for(int i=0; i<semitonespaces; i++) std::cout<<" ";
-        std::cout<<"C"; for(int i=0; i<semitonespaces; i++) std::cout<<" ";
-        std::cout<<"C#"; for(int i=0; i<semitonespaces-1; i++) std::cout<<" ";
-        std::cout<<"D"; for(int i=0; i<semitonespaces; i++) std::cout<<" ";
-        std::cout<<"D#"; for(int i=0; i<semitonespaces-1; i++) std::cout<<" ";
-        std::cout<<"E"; for(int i=0; i<semitonespaces; i++) std::cout<<" ";
-        std::cout<<"F"; for(int i=0; i<semitonespaces; i++) std::cout<<" ";
-        std::cout<<"F#"; for(int i=0; i<semitonespaces-1; i++) std::cout<<" ";
-        std::cout<<"G"; for(int i=0; i<semitonespaces; i++) std::cout<<" ";
-        std::cout<<"G#";
 
         SDL_Delay(delayMicroseconds);
     }
