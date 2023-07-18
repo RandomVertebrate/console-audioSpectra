@@ -224,7 +224,7 @@ Takes pointer to an array of audio samples, performs FFT, and outputs magnitude 
 complex coefficients.
 i.e., it give amplitude but not phase of frequency components in given audio.
 **/
-void FindFrequencyContent(sample* output, sample* input, int n)
+void FindFrequencyContent(sample* output, sample* input, int n, float vScale = 0.005)
 {
     cmplx* fftin = new cmplx[n];
     cmplx* fftout = new cmplx[n];
@@ -233,7 +233,7 @@ void FindFrequencyContent(sample* output, sample* input, int n)
     fft(fftout, fftin, n);                                              /// FFT
     for(int i=0; i<n; i++)                                              /// Convert output to real samples
     {
-        double currentvalue = abs(fftout[i])/200;
+        double currentvalue = abs(fftout[i])*vScale;
         output[i] = (sample)(currentvalue>MAX_SAMPLE_VALUE ? MAX_SAMPLE_VALUE : currentvalue);
     }
 
@@ -258,7 +258,7 @@ void show_bargraph(int bars[], int n_bars, int height=50,               /// Hist
         Graph[chnum++] = '\n';                                          /// Next row
     }
 
-    for(int j=0; j<n_bars*hScale; j++)                                  /// Add extra line of symbols at the bottom
+    for(int j=0; j<n_bars*hScale-1; j++)                                  /// Add extra line of symbols at the bottom
         Graph[chnum++] = symbol;
 
     Graph[chnum++] = '\0';                                              /// Null-terminate string
@@ -539,33 +539,50 @@ void startTuner(int iterations, bool adaptive = false, int delayMicroseconds = 1
                     octave1index[i] = 55*pow(2, (float)i/numbars)*FFTLEN/RATE;  /// "Fractional index" in spectrum[] corresponding to ith frequency.
 
                 /// UPDATING PITCH NAMES STRING
+                float bars_per_semitone = (float)(numbars)/(float)12;
                 int chnum = 0;
                 /// Adding pitch letter names
-                int semitonespaces = round((float)(numbars-12)/(float)12);
-                pitchnames[chnum++]='A'; for(int i=0; i<semitonespaces; i++) pitchnames[chnum++]=' ';
-                pitchnames[chnum++]='A'; pitchnames[chnum++]='#'; for(int i=0; i<semitonespaces-1; i++) pitchnames[chnum++]=' ';
-                pitchnames[chnum++]='B'; for(int i=0; i<semitonespaces; i++) pitchnames[chnum++]=' ';
-                pitchnames[chnum++]='C'; for(int i=0; i<semitonespaces; i++) pitchnames[chnum++]=' ';
-                pitchnames[chnum++]='C'; pitchnames[chnum++]='#'; for(int i=0; i<semitonespaces-1; i++) pitchnames[chnum++]=' ';
-                pitchnames[chnum++]='D'; for(int i=0; i<semitonespaces; i++) pitchnames[chnum++]=' ';
-                pitchnames[chnum++]='D'; pitchnames[chnum++]='#'; for(int i=0; i<semitonespaces-1; i++) pitchnames[chnum++]=' ';
-                pitchnames[chnum++]='E'; for(int i=0; i<semitonespaces; i++) pitchnames[chnum++]=' ';
-                pitchnames[chnum++]='F'; for(int i=0; i<semitonespaces; i++) pitchnames[chnum++]=' ';
-                pitchnames[chnum++]='F'; pitchnames[chnum++]='#'; for(int i=0; i<semitonespaces-1; i++) pitchnames[chnum++]=' ';
-                pitchnames[chnum++]='G'; for(int i=0; i<semitonespaces; i++) pitchnames[chnum++]=' ';
-                pitchnames[chnum++]='G'; pitchnames[chnum++]='#'; pitchnames[chnum++]='\n';
-                /// Adding row of dots
-                for(int i=0; i<11; i++)                                         /// Adding 11 pipes and corresponding dots
+                pitchnames[chnum++]='A';
+                while(chnum<round(bars_per_semitone*1.0)) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='A';
+                pitchnames[chnum++]='#';
+                while(chnum<round(bars_per_semitone*2.0)) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='B';
+                while(chnum<round(bars_per_semitone*3.0)) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='C';
+                while(chnum<round(bars_per_semitone*4.0)) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='C';
+                pitchnames[chnum++]='#';
+                while(chnum<round(bars_per_semitone*5.0)) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='D';
+                while(chnum<round(bars_per_semitone*6.0)) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='D';
+                pitchnames[chnum++]='#';
+                while(chnum<round(bars_per_semitone*7.0)) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='E';
+                while(chnum<round(bars_per_semitone*8.0)) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='F';
+                while(chnum<round(bars_per_semitone*9.0)) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='F';
+                pitchnames[chnum++]='#';
+                while(chnum<round(bars_per_semitone*10.0)) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='G';
+                while(chnum<round(bars_per_semitone*11.0)) pitchnames[chnum++]=' ';
+                pitchnames[chnum++]='G';
+                pitchnames[chnum++]='#';
+
+                int newlinechar_pos = chnum;                                    /// Storing index of end of first line (letter names)
+                pitchnames[chnum++]='\n';                                       /// And going to next line (row of pipes and dots)
+
+                /// Adding row of pipes and dots
+                for(int i=0; i<12; i++)
                 {
                     pitchnames[chnum++]='|';
-                    for(int j=0; j<semitonespaces; j++)
+                    while((chnum-newlinechar_pos-1)<round(bars_per_semitone*(float)(i+1)))
                         pitchnames[chnum++]='.';
                 }
-                pitchnames[chnum++]='|';                                        /// Adding the last pipe
-                for(int i=11*(semitonespaces+1); i<numbars; i++)                /// Filling remaining space with dots
-                    pitchnames[chnum++]='.';
                 pitchnames[chnum++]='\n';
-                pitchnames[chnum++]='\0';
+                pitchnames[chnum++]='\0';                                       /// Terminating String
             }
         }
 
