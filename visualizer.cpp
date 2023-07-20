@@ -33,9 +33,9 @@ void startSemilogVisualizer(int minfreq, int maxfreq, AudioQueue &MainAudioQueue
 
     CONSOLE_SCREEN_BUFFER_INFO csbi;                                    /// Console object to retrieve console window size for graph scaling
 
-    for(int i=0; i<iterations; i++)
+    for(int i_m=0; i_m<iterations; i_m++)
     {
-        if(i%10==0)                                                     /// Every 10 iterations, get window size and update graph scaling
+        if(i_m%10==0)                                                   /// Every 10 iterations, get window size and update graph scaling
         {
             GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
             numbars = csbi.srWindow.Right - csbi.srWindow.Left;
@@ -103,9 +103,9 @@ void startLinearVisualizer(int minfreq, int maxfreq,  AudioQueue &MainAudioQueue
 
     CONSOLE_SCREEN_BUFFER_INFO csbi;
 
-    for(int i=0; i<iterations; i++)
+    for(int i_m=0; i_m<iterations; i_m++)
     {
-        if(i%10==0)
+        if(i_m%10==0)
         {
             GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
             numbars = csbi.srWindow.Right - csbi.srWindow.Left;
@@ -169,9 +169,9 @@ void startLoglogVisualizer(int minfreq, int maxfreq,  AudioQueue &MainAudioQueue
 
     CONSOLE_SCREEN_BUFFER_INFO csbi;
 
-    for(int i=0; i<iterations; i++)
+    for(int i_m=0; i_m<iterations; i_m++)
     {
-        if(i%10==0)
+        if(i_m%10==0)
         {
             GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
             numbars = csbi.srWindow.Right - csbi.srWindow.Left;
@@ -236,9 +236,9 @@ void startTuner( AudioQueue &MainAudioQueue, int iterations, bool adaptive, int 
 
     CONSOLE_SCREEN_BUFFER_INFO csbi;
 
-    for(int i=0; i<iterations; i++)
+    for(int i_m=0; i_m<iterations; i_m++)
     {
-        if(i%10==0)
+        if(i_m%10==0)
         {
             GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
             new_numbars = csbi.srWindow.Right - csbi.srWindow.Left;
@@ -389,9 +389,9 @@ void startAutoTuner(AudioQueue &MainAudioQueue, int iterations, int delayMicrose
 
     int window_width = 0;
 
-    for(int i=0; i<iterations; i++)                                     /// Main loop
+    for(int i_m=0; i_m<iterations; i_m++)                               /// Main loop
     {
-        if(i%10==0)                                                     /// Every 10 iterations, check if window width has changed
+        if(i_m%10==0)                                                   /// Every 10 iterations, check if window width has changed
         {
             GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
             int new_window_width = csbi.srWindow.Right - csbi.srWindow.Left;
@@ -493,5 +493,102 @@ void startAutoTuner(AudioQueue &MainAudioQueue, int iterations, int delayMicrose
         }
 
         SDL_Delay(delayMicroseconds);
+    }
+}
+
+void startChordSpeller(AudioQueue &MainAudioQueue, int iterations, int delayMicroseconds, int holdMicroseconds, int max_notes)
+{
+    system("cls");
+
+    sample workingBuffer[FFTLEN];
+    sample spectrum[FFTLEN];
+
+    const float quartertone = pow(2.0, 1.0/24.0);
+
+    const int num_spikes = 200;                                         /// Number of fft spikes to consider
+    int SpikeLocs[100];                                                 /// Array to store indices in spectrum[] of fft spikes
+    float SpikeFreqs[100];                                              /// Array to store frequencies corresponding to spikes
+
+    float noteFreqs[100];                                               /// Array to store distinct peak frequencies
+    int notes_found = 0;                                                /// Number of distinct peaks found
+
+    for(int i_m=0; i_m<iterations; i_m++)
+    {
+        notes_found = 0;
+
+        MainAudioQueue.peekFreshData(workingBuffer, FFTLEN);
+        FindFrequencyContent(spectrum, workingBuffer, FFTLEN, 0.0001);
+
+        Find_n_Largest(SpikeLocs, spectrum, num_spikes, FFTLEN/2);      /// Find spikes
+
+        for(int i=0; i<num_spikes; i++)                                 /// Find spike frequencies
+            SpikeFreqs[i] = index2freq(SpikeLocs[i]);
+
+        noteFreqs[notes_found++] = SpikeFreqs[0];
+
+        /// Find unique spike frequencies and store in noteFreqs[].
+        /// SpikeFreqs[] is in decreasing order of spike intensity, so the tallest spikes will be added first.
+        for(int i=1; i<num_spikes; i++)                                 /// For each frequency spike
+        {
+            bool uniq = true;                                           /// Assume unique by default
+            for(int j=0; j<notes_found; j++)                            /// Look at each unique note already found,
+            {
+                float separation = (SpikeFreqs[i]>noteFreqs[j] ?        /// calculate the separation ratio (interval),
+                                    SpikeFreqs[i]/noteFreqs[j] : noteFreqs[j]/SpikeFreqs[i]);
+                if(separation<quartertone)                              /// and check that it is greater at least than a quarter tone
+                {
+                    uniq = false;                                       /// If separation less than a quarter tone, spike is non-unique
+                    break;
+                }
+            }
+
+            /// Add unique frequencies to noteFreqs until max_notes unique frequencies found OR all spikes checked
+            if(notes_found>max_notes)
+                break;
+            else if(uniq)
+                noteFreqs[notes_found++] = SpikeFreqs[i];
+        }
+
+        /// Sort notes found in increasing order of frequency, so "chord root" appears first.
+        for(int i=0; i<notes_found; i++)
+            for(int j=0; j<notes_found-1; j++)
+                if(noteFreqs[j] < noteFreqs[j+1])
+                {
+                    float tmp = noteFreqs[j];
+                    noteFreqs[j] = noteFreqs[j+1];
+                    noteFreqs[j+1] = tmp;
+                }
+
+        /// Now preparing and printing note name string
+        char notenames[100];
+        int chnum = 0;
+        for(int i=0; i<notes_found; i++)
+        {
+            chnum += pitchName(notenames+chnum, pitchNumber(noteFreqs[i]));
+            notenames[chnum++] = ' ';
+        }
+        notenames[chnum++] = '\0';
+        std::cout<<"\rPitches Identified: "<<notenames<<"             ";
+
+        /// Ad-hoc correction factor to make more peaky results (confidently detected chords) display for longer
+        double fft_max = spectrum[0];
+        double fft_mean = spectrum[0];
+        for(int i=1; i<FFTLEN; i++)
+        {
+            fft_mean += (double)spectrum[i]/(double)FFTLEN;
+            if(spectrum[i]>fft_max)
+                fft_max = spectrum[i];
+        }
+        double peakiness = 0.8 + fft_max*0.1/fft_mean;
+        double time_multiplier = exp(exp(peakiness));
+
+        /// Maximum hold time is holdMicroseconds
+        if(time_multiplier*delayMicroseconds>holdMicroseconds)
+        {
+            time_multiplier = holdMicroseconds/delayMicroseconds;
+        }
+
+        /// Delay
+        SDL_Delay(delayMicroseconds*time_multiplier);
     }
 }

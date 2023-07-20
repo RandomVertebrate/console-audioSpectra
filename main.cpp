@@ -70,16 +70,17 @@ int main(int argc, char** argv)
     int ans, lim1, lim2;
     std::cout<<"\nVisualizer Options\n------------------\n"
         <<"\nScaled Spectrum:\n"
-        <<"\n1. Fixed semilog"
-        <<"\n2. Fixed linear"
-        <<"\n3. Fixed log-log"
-        <<"\n4. Adaptive semilog"
-        <<"\n5. Adaptive linear"
-        <<"\n6. Adaptive log-log"
-        <<"\n7. Octave-wrapped semilog (guitar tuner)"
-        <<"\n8. Adaptive guitar tuner"
+        <<"\n1 . Fixed semilog"
+        <<"\n2 . Fixed linear"
+        <<"\n3 . Fixed log-log"
+        <<"\n4 . Adaptive semilog"
+        <<"\n5 . Adaptive linear"
+        <<"\n6 . Adaptive log-log"
+        <<"\n7 . Octave-wrapped semilog (guitar tuner)"
+        <<"\n8 . Adaptive guitar tuner"
         <<"\n\nOther:\n"
-        <<"\n9. Pitch recognition (auto tuner)"
+        <<"\n9 . Pitch recognition (auto tuner)"
+        <<"\n10. Spike enumeration (chord speller)"
         <<"\n\nEnter choice: ";
     std::cin>>ans;
     if(ans<7)
@@ -93,15 +94,16 @@ int main(int argc, char** argv)
     std::cin>>::echoVolume;
     switch(ans)
     {
-        case 1: startSemilogVisualizer(lim1, lim2, MainAudioQueue, 1000); break;
-        case 2: startLinearVisualizer(lim1, lim2, MainAudioQueue, 1000); break;
-        case 3: startLoglogVisualizer(lim1, lim2, MainAudioQueue, 1000); break;
-        case 4: startSemilogVisualizer(lim1, lim2, MainAudioQueue, 1000, true); break;
-        case 5: startLinearVisualizer(lim1, lim2, MainAudioQueue, 1000, true); break;
-        case 6: startLoglogVisualizer(lim1, lim2, MainAudioQueue, 1000, true); break;
-        case 7: startTuner(MainAudioQueue, 1000); break;
-        case 8: startTuner(MainAudioQueue, 1000, true); break;
-        case 9: startAutoTuner(MainAudioQueue, 1000); break;
+        case 1 : startSemilogVisualizer(lim1, lim2, MainAudioQueue, 1000); break;
+        case 2 : startLinearVisualizer(lim1, lim2, MainAudioQueue, 1000); break;
+        case 3 : startLoglogVisualizer(lim1, lim2, MainAudioQueue, 1000); break;
+        case 4 : startSemilogVisualizer(lim1, lim2, MainAudioQueue, 1000, true); break;
+        case 5 : startLinearVisualizer(lim1, lim2, MainAudioQueue, 1000, true); break;
+        case 6 : startLoglogVisualizer(lim1, lim2, MainAudioQueue, 1000, true); break;
+        case 7 : startTuner(MainAudioQueue, 1000); break;
+        case 8 : startTuner(MainAudioQueue, 1000, true); break;
+        case 9 : startAutoTuner(MainAudioQueue, 1000); break;
+        case 10: startChordSpeller(MainAudioQueue, 1000); break;
         default: return 0;
     }
 

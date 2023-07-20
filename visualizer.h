@@ -51,3 +51,11 @@ pitch names are to be shown on screen at once.
 **/
 
 void startAutoTuner(AudioQueue &MainAudioQueue, int iterations, int delayMicroseconds = 10, int span_semitones = 5);
+
+/**
+----Chord Speller----
+startChordSpeller() finds frequency peaks and prints out their pitch names
+**/
+
+void startChordSpeller(AudioQueue &MainAudioQueue, int iterations, int delayMicroseconds = 10,
+                       int holdMicroseconds = 4000, int max_notes = 5);
