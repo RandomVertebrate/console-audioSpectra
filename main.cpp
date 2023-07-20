@@ -179,12 +179,6 @@ void dftmag(sample* output, sample* input, int n)                       /// O(n^
 
 void fft(cmplx* output, cmplx* input, int n)                            /// Simplest FFT algorithm
 {
-    /*
-    cout<<"\nFFT called on input ";
-    for(int i=0; i<n; i++)
-        cout<<input[i];
-    */
-
     if(n==1)
     {
         output[0] = input[0];
@@ -327,7 +321,7 @@ float approx_hcf(float inputs[], int num_inputs, int max_iter = 5, int accuracy_
     int* IntegerParts = new int[max_iter];                              /// Array for continued fraction integer parts
     float fracpart = Ratio;                                             /// Fractional part (equals Ratio for iteration zero)
     bool accuracy_threshold_reached = false;                            /// Termination flag
-    int int_sum = 0;                                                    /// Sum of integer parts used as measure of accuracy for termination
+    int int_sum = 0;                                                    /// Sum of integer parts used as ad-hoc measure of accuracy
     int n;                                                              /// Termination point of continued fraction (incremented in loop).
     /// Calculating integer parts...
     for(n=0; n<max_iter; n++)                                           /// Limit on iterations ensures simple integer ratio (or nothing)
@@ -362,7 +356,7 @@ float approx_hcf(float inputs[], int num_inputs, int max_iter = 5, int accuracy_
     /// If simple integer ratio successfully found, then the HCF is:
     /// the bigger input divided by the numerator (which is bigger than the denominator)
     /// or
-    /// the smaller input divided by the denominator(which is smaller than the denominator)
+    /// the smaller input divided by the denominator (which is smaller than the numerator)
     /// Now returning the geometric mean of these two possibilities.
     return sqrt((inputs[0]/(float)numerator)*((inputs[1]/(float)denominator)));
 }
