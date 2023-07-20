@@ -19,5 +19,4 @@ Octave-marking information is thus effectively discarded, but information of fla
 This performs pitch detection by identifying peaks in the FFT and finding the "approximate HCF" (i.e., fundamental frequency corresponding to an arbitrary subset of harmonics) using continued fractions.
 Tuner display is a needle-and-dial type, but the needle stays fixed and the dial moves, to prevent erratic needle motions near quarter-tone points.
 
-<img width="960" alt="sc3" src="https://github.com/RandomVertebrate/console-audioSpectra/assets/54997017/105a587b-7851-4dd9-95ca-40a994bc3395">
-
+<img width="960" alt="sc3" src="https://github.com/RandomVertebrate/console-audioSpectra/assets/54997017/25d0b8dc-2f5f-4e90-984d-bebde7e2624c">
