@@ -15,7 +15,7 @@ Octave-marking information is thus effectively discarded, but information of fla
 
 <img width="960" alt="sc2" src="https://github.com/RandomVertebrate/console-audioSpectra/assets/54997017/4ef75b59-4d2c-492f-a8ed-6b29b1e8675f">
 
-## 'Auto' Guitar Tuner Mode
+## "Auto" Guitar Tuner Mode
 This performs pitch detection by identifying peaks in the FFT and finding the "approximate HCF" (i.e., fundamental frequency corresponding to an arbitrary subset of harmonics) using continued fractions.
 Tuner display is a needle-and-dial type, but the needle stays fixed and the dial moves, to prevent erratic needle motions near quarter-tone points.
 
