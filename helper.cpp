@@ -86,13 +86,13 @@ float approx_hcf(float inputs[], int num_inputs, int max_iter, int accuracy_thre
     int* IntegerParts = new int[max_iter];                              /// Array for continued fraction integer parts
     float fracpart = Ratio;                                             /// Fractional part (equals Ratio for iteration zero)
     bool accuracy_threshold_reached = false;                            /// Termination flag
-    int int_sum = 0;                                                    /// Sum of integer parts used as ad-hoc measure of accuracy
+    int int_sum = 0;                                                    /// Sum of increasing multiples of integer parts used as ad-hoc measure of accuracy
     int n;                                                              /// Termination point of continued fraction (incremented in loop).
     /// Calculating integer parts...
     for(n=0; n<max_iter; n++)                                           /// Limit on iterations ensures simple integer ratio (or nothing)
     {
         IntegerParts[n] = (int)fracpart;
-        int_sum += IntegerParts[n];
+        int_sum += n*IntegerParts[n];
         fracpart = 1.0/(fracpart - IntegerParts[n]);
 
         if(int_sum > accuracy_threshold)

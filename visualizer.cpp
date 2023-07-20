@@ -444,7 +444,7 @@ void startAutoTuner(AudioQueue &MainAudioQueue, int iterations, int delayMicrose
         MainAudioQueue.peekFreshData(workingBuffer, FFTLEN);
         FindFrequencyContent(spectrum, workingBuffer, FFTLEN, 0.00005);
 
-        int num_spikes = 50;                                            /// Number of fft spikes to consider for pitch deduction
+        int num_spikes = 5;                                            /// Number of fft spikes to consider for pitch deduction
         int SpikeLocs[100];                                             /// Array to store indices in spectrum[] of fft spikes
         float SpikeFreqs[100];                                          /// Array to store frequencies corresponding to spikes
 
@@ -453,7 +453,7 @@ void startAutoTuner(AudioQueue &MainAudioQueue, int iterations, int delayMicrose
         for(int i=0; i<num_spikes; i++)                                 /// Find spike frequencies (assumed to be harmonics)
             SpikeFreqs[i] = index2freq(SpikeLocs[i]);
 
-        float pitch = approx_hcf(SpikeFreqs, num_spikes, 10, 4);        /// Find pitch as approximate HCF of spike frequencies
+        float pitch = approx_hcf(SpikeFreqs, num_spikes, 3, 50);        /// Find pitch as approximate HCF of spike frequencies
 
         if(pitch)                                                       /// If pitch found, update notenames and print
         {
@@ -505,12 +505,12 @@ void startChordSpeller(AudioQueue &MainAudioQueue, int iterations, int delayMicr
 
     const float quartertone = pow(2.0, 1.0/24.0);
 
-    const int num_spikes = 200;                                         /// Number of fft spikes to consider
+    const int num_spikes = 20;                                          /// Number of fft spikes to consider
     int SpikeLocs[100];                                                 /// Array to store indices in spectrum[] of fft spikes
     float SpikeFreqs[100];                                              /// Array to store frequencies corresponding to spikes
 
     float noteFreqs[100];                                               /// Array to store distinct peak frequencies
-    int notes_found = 0;                                                /// Number of distinct peaks found
+    int notes_found;                                                /// Number of distinct peaks found
 
     for(int i_m=0; i_m<iterations; i_m++)
     {
@@ -543,7 +543,7 @@ void startChordSpeller(AudioQueue &MainAudioQueue, int iterations, int delayMicr
             }
 
             /// Add unique frequencies to noteFreqs until max_notes unique frequencies found OR all spikes checked
-            if(notes_found>max_notes)
+            if(notes_found>=max_notes)
                 break;
             else if(uniq)
                 noteFreqs[notes_found++] = SpikeFreqs[i];
@@ -579,7 +579,7 @@ void startChordSpeller(AudioQueue &MainAudioQueue, int iterations, int delayMicr
             if(spectrum[i]>fft_max)
                 fft_max = spectrum[i];
         }
-        double peakiness = 0.8 + fft_max*0.1/fft_mean;
+        double peakiness = 0.5 + fft_max*0.002/fft_mean;
         double time_multiplier = exp(exp(peakiness));
 
         /// Maximum hold time is holdMicroseconds
