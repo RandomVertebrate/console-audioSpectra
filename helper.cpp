@@ -129,23 +129,77 @@ float approx_hcf(float inputs[], int num_inputs, int max_iter, int accuracy_thre
 /**
 ----Find_n_Largest()----
 Finds indices of n_out largest samples in input array.
-**/
-void Find_n_Largest(int* output, sample* input, int n_out, int n_in, float MinRatio)
-{
-    /// Initialize output to 0 (i.e., index of first input)
-    for(int i=0; i<n_out; i++)
-        output[i] = 0;
 
-    for(int i=0; i<n_in; i=(float)i*MinRatio+1)                         /// Iterate through input
+If ignore_clumped is true, then only the largest of any clump of consecutive spikes is
+kept.
+**/
+void Find_n_Largest(int* output, sample* input, int n_out, int n_in, bool ignore_clumped)
+{
+    /// First, find the position of the smallest element in the input array
+    sample min_pos = 0;
+    for(int i=0; i<n_in; i++)
+        if(input[i]<input[min_pos])
+            min_pos = i;
+    /// And set every element of the output to the index of this minimum element
+    for(int i=0; i<n_out; i++)
+        output[i] = min_pos;
+
+    /**
+    Now, iterate through inputs and for each input:
+    1.  Check whether it is part of a clump
+        - If part of a clump store output index of the other clump-mate
+    2.  Check whether it is greater than ANY output
+    3.  If input i is greater than some output j and input i is not clumped
+        - Insert index i before output j (shifting outputs j, j+1, j+2... to the right)
+        Else if input i is greater than output j and its clump-mate is to the right of j
+        - Delete the other clump-mate (it is the smaller of the two clump-mates) and insert input index i at output location j
+        Else if input i is greater than output j and its clump-mate is to the left of j
+        - Do nothing (clump already represented)
+    **/
+    for(int i=0; i<n_in; i++)
     {
-        for(int j=0; j<n_out; j++)                                      /// For each input, iterate through outputs
-            if(input[i]>input[output[j]]*1.01)                          /// and check if it is bigger than any output
+        /// Check if the current input element is part of a clump of peaks
+        /// i.e., check if the index of the previous input element has been added to the output
+        bool part_of_clump = false;
+        int OutputClumpMate;
+        if(output[i] == min_pos+1)                                      /// The (min_pos)th element is a non-spike,
+            part_of_clump = false;                                      /// so the (min_pos+1)th element cannot be part of a clump
+        else if(i>0)                                                    /// Only elements input[i>0] have a previous element to check
+        {
+            for(int j=0; j<n_out; j++)
+            {
+                if(output[j] == i-1 && j!=min_pos)                      /// If part of clump
                 {
-                    for(int k=n_out-1; k>0; k--)                        /// If bigger than the jth output,
-                        output[k] = output[k-1];                        /// Shift all outputs to the right from j onwards
-                    output[j] = i;                                      /// and insert the index of the input that was bigger
+                    part_of_clump = true;                               /// Set clump flag and also
+                    OutputClumpMate = output[j];                        /// store output index of clump-mate, i.e., previous input index
+                }
+            }
+        }
+
+        /// Check whether the current input is bigger than any output
+        for(int j=0; j<n_out; j++)
+            if(input[i]>input[output[j]]*1.01)
+            {
+                /// If it is, check if clumping must be accounted for
+                if(!(part_of_clump && ignore_clumped))
+                {
+                    /// If not, just insert
+                    for(int k=n_out-1; k>j; k--)
+                        output[k] = output[k-1];
+                    output[j] = i;
                     break;
                 }
+                /// Otherwise, check if clump-mate is to the right of the would-be position of the new addition
+                else if(OutputClumpMate > j)
+                {
+                    /// And if so, shift everything between the would-be position and the clump-mate position to the right
+                    /// and insert the new addition where it belongs
+                    for(int k=OutputClumpMate; k>j; k--)
+                        output[k] = output[k-1];
+                    output[j] = i;
+                    break;
+                }
+            }
     }
 }
 

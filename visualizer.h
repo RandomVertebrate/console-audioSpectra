@@ -58,4 +58,4 @@ startChordSpeller() finds frequency peaks and prints out their pitch names
 **/
 
 void startChordSpeller(AudioQueue &MainAudioQueue, int iterations, int delayMicroseconds = 10,
-                       int holdMicroseconds = 4000, int max_notes = 4);
+                       int holdMicroseconds = 500, int max_notes = 5);

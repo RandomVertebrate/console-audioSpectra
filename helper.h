@@ -32,7 +32,7 @@ float approx_hcf(float inputs[], int num_inputs, int max_iter = 5, int accuracy_
 ----Find_n_Largest()----
 Finds indices of n_out largest samples in input array.
 **/
-void Find_n_Largest(int* output, sample* input, int n_out, int n_in, float MinRatio = 1);
+void Find_n_Largest(int* output, sample* input, int n_out, int n_in, bool ignore_clumped = true);
 
 /**
 ----int pitchNumber()----

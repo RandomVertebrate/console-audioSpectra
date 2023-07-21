@@ -453,7 +453,7 @@ void startAutoTuner(AudioQueue &MainAudioQueue, int iterations, int delayMicrose
         for(int i=0; i<num_spikes; i++)                                 /// Find spike frequencies (assumed to be harmonics)
             SpikeFreqs[i] = index2freq(SpikeLocs[i]);
 
-        float pitch = approx_hcf(SpikeFreqs, num_spikes, 3, 50);        /// Find pitch as approximate HCF of spike frequencies
+        float pitch = approx_hcf(SpikeFreqs, num_spikes, 5, 50);        /// Find pitch as approximate HCF of spike frequencies
 
         if(pitch)                                                       /// If pitch found, update notenames and print
         {
@@ -510,7 +510,7 @@ void startChordSpeller(AudioQueue &MainAudioQueue, int iterations, int delayMicr
     float SpikeFreqs[100];                                              /// Array to store frequencies corresponding to spikes
 
     float noteFreqs[100];                                               /// Array to store distinct peak frequencies
-    int notes_found;                                                /// Number of distinct peaks found
+    int notes_found;                                                    /// Number of distinct peaks found
 
     for(int i_m=0; i_m<iterations; i_m++)
     {
@@ -519,7 +519,8 @@ void startChordSpeller(AudioQueue &MainAudioQueue, int iterations, int delayMicr
         MainAudioQueue.peekFreshData(workingBuffer, FFTLEN);
         FindFrequencyContent(spectrum, workingBuffer, FFTLEN, 0.0001);
 
-        Find_n_Largest(SpikeLocs, spectrum, num_spikes, FFTLEN/2);      /// Find spikes
+        Find_n_Largest(SpikeLocs, spectrum,
+                       num_spikes, FFTLEN/2, false);                    /// Find spikes
 
         for(int i=0; i<num_spikes; i++)                                 /// Find spike frequencies
             SpikeFreqs[i] = index2freq(SpikeLocs[i]);
@@ -552,14 +553,14 @@ void startChordSpeller(AudioQueue &MainAudioQueue, int iterations, int delayMicr
         /// Sort notes found in increasing order of frequency, so "chord root" appears first.
         for(int i=0; i<notes_found; i++)
             for(int j=0; j<notes_found-1; j++)
-                if(noteFreqs[j] < noteFreqs[j+1])
+                if(noteFreqs[j] > noteFreqs[j+1])
                 {
                     float tmp = noteFreqs[j];
                     noteFreqs[j] = noteFreqs[j+1];
                     noteFreqs[j+1] = tmp;
                 }
 
-        /// Now preparing and printing note name string
+        /// Now preparing and note name string
         char notenames[100];
         int chnum = 0;
         for(int i=0; i<notes_found; i++)
@@ -568,9 +569,8 @@ void startChordSpeller(AudioQueue &MainAudioQueue, int iterations, int delayMicr
             notenames[chnum++] = ' ';
         }
         notenames[chnum++] = '\0';
-        std::cout<<"\rPitches Identified: "<<notenames<<"             ";
 
-        /// Ad-hoc correction factor to make more peaky results (confidently detected chords) display for longer
+        /// Only display pitches if spectrum is peaky (chord has probably been played)
         double fft_max = spectrum[0];
         double fft_mean = spectrum[0];
         for(int i=1; i<FFTLEN; i++)
@@ -579,16 +579,16 @@ void startChordSpeller(AudioQueue &MainAudioQueue, int iterations, int delayMicr
             if(spectrum[i]>fft_max)
                 fft_max = spectrum[i];
         }
-        double peakiness = 0.5 + fft_max*0.002/fft_mean;
-        double time_multiplier = exp(exp(peakiness));
+        double peakiness = fft_max/fft_mean;
 
-        /// Maximum hold time is holdMicroseconds
-        if(time_multiplier*delayMicroseconds>holdMicroseconds)
+        /// Display pitches, and delay
+        if(peakiness>1100)
         {
-            time_multiplier = holdMicroseconds/delayMicroseconds;
+            std::cout<<"\rPitches Identified: "<<notenames<<"             ";
+            SDL_Delay(holdMicroseconds);
         }
+        else
+            SDL_Delay(delayMicroseconds);
 
-        /// Delay
-        SDL_Delay(delayMicroseconds*time_multiplier);
     }
 }
