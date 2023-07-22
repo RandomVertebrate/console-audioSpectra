@@ -496,57 +496,61 @@ void startAutoTuner(AudioQueue &MainAudioQueue, int iterations, int delayMicrose
     }
 }
 
-void startChordSpeller(AudioQueue &MainAudioQueue, int iterations, int delayMicroseconds, int holdMicroseconds, int max_notes)
+void startChordGuesser(AudioQueue &MainAudioQueue, int iterations, int delayMicroseconds, int max_notes)
 {
     system("cls");
+    initialize_chord_dictionary();
 
     sample workingBuffer[FFTLEN];
     sample spectrum[FFTLEN];
 
-    const float quartertone = pow(2.0, 1.0/24.0);
+    const float quartertone = pow(2.0, 1.0/24.0);                       /// Interval of quarter-tone (used to check pitch distinctness)
 
-    const int num_spikes = 20;                                          /// Number of fft spikes to consider
+    const int num_spikes = 10;                                          /// Number of fft spikes to consider
     int SpikeLocs[100];                                                 /// Array to store indices in spectrum[] of fft spikes
     float SpikeFreqs[100];                                              /// Array to store frequencies corresponding to spikes
 
-    float noteFreqs[100];                                               /// Array to store distinct peak frequencies
+    float noteFreqs[10];                                                /// Array to store distinct peak frequencies
     int notes_found;                                                    /// Number of distinct peaks found
 
     for(int i_m=0; i_m<iterations; i_m++)
     {
-        notes_found = 0;
+        notes_found = 0;                                                /// Number of distinct pitches (spikes) found
 
         MainAudioQueue.peekFreshData(workingBuffer, FFTLEN);
-        FindFrequencyContent(spectrum, workingBuffer, FFTLEN, 0.0001);
+        FindFrequencyContent(spectrum, workingBuffer, FFTLEN);
 
-        Find_n_Largest(SpikeLocs, spectrum,
-                       num_spikes, FFTLEN/2, false);                    /// Find spikes
+        Find_n_Largest(SpikeLocs, spectrum,                             /// Find spikes. Somehow works worse with clump rejection,
+                       num_spikes, FFTLEN/2, false);                    /// so using separate pitch distinctness check.
 
         for(int i=0; i<num_spikes; i++)                                 /// Find spike frequencies
             SpikeFreqs[i] = index2freq(SpikeLocs[i]);
 
         noteFreqs[notes_found++] = SpikeFreqs[0];
 
-        /// Find unique spike frequencies and store in noteFreqs[].
+        /// Find distinct spike frequencies and store in noteFreqs[].
         /// SpikeFreqs[] is in decreasing order of spike intensity, so the tallest spikes will be added first.
         for(int i=1; i<num_spikes; i++)                                 /// For each frequency spike
         {
-            bool uniq = true;                                           /// Assume unique by default
-            for(int j=0; j<notes_found; j++)                            /// Look at each unique note already found,
+            /// First check if spike is distinct
+            bool distinct = true;                                       /// Assume distinct by default
+            for(int j=0; j<notes_found; j++)                            /// Look at each distinct note already found,
             {
                 float separation = (SpikeFreqs[i]>noteFreqs[j] ?        /// calculate the separation ratio (interval),
                                     SpikeFreqs[i]/noteFreqs[j] : noteFreqs[j]/SpikeFreqs[i]);
                 if(separation<quartertone)                              /// and check that it is greater at least than a quarter tone
                 {
-                    uniq = false;                                       /// If separation less than a quarter tone, spike is non-unique
+                    distinct = false;                                   /// If separation less than a quarter tone, spike is non-distinct
                     break;
                 }
             }
 
-            /// Add unique frequencies to noteFreqs until max_notes unique frequencies found OR all spikes checked
+            /// Stop adding to noteFreqs if max_notes notes already found
             if(notes_found>=max_notes)
                 break;
-            else if(uniq)
+
+            /// If note is distinct, add it to noteFreqs.
+            if(distinct)
                 noteFreqs[notes_found++] = SpikeFreqs[i];
         }
 
@@ -560,35 +564,61 @@ void startChordSpeller(AudioQueue &MainAudioQueue, int iterations, int delayMicr
                     noteFreqs[j+1] = tmp;
                 }
 
-        /// Now preparing and note name string
-        char notenames[100];
-        int chnum = 0;
+        /// Now calculating pitch numbers (1 = A, 2 = A#, 3 = B etc.) of notes in 'chord'
+        int chord_tones[10];
+        int unique_chord_tones[10];
+        for(int i=0; i<notes_found; i++)
+            chord_tones[i] = pitchNumber(noteFreqs[i]);
+
+        /// And finding list of unique chord tones (deleting octave-up/down repetitions of notes)
+        int num_unique_chord_tones = 0;
         for(int i=0; i<notes_found; i++)
         {
-            chnum += pitchName(notenames+chnum, pitchNumber(noteFreqs[i]));
-            notenames[chnum++] = ' ';
-        }
-        notenames[chnum++] = '\0';
+            bool uniq = true;
+            for(int j=0; j<num_unique_chord_tones; j++)
+                if(chord_tones[i] == unique_chord_tones[j])
+                    uniq = false;
 
-        /// Only display pitches if spectrum is peaky (chord has probably been played)
+            if(uniq)
+                unique_chord_tones[num_unique_chord_tones++] = chord_tones[i];
+        }
+
+        /// Now preparing display string
+        char displaystring[100];
+        int chnum = 0;
+        chnum += what_chord_is(displaystring, unique_chord_tones, num_unique_chord_tones);
+        displaystring[chnum++] = ' ';
+        displaystring[chnum++] = '(';
+        for(int i=0; i<notes_found; i++)
+        {
+            chnum += pitchName(displaystring+chnum, chord_tones[i]);
+            displaystring[chnum++] = ' ';
+        }
+        displaystring[chnum++] = ')';
+        displaystring[chnum++] = '\0';
+
+        /// Ad-hoc measure of peakiness of spectrum: peakiness = max/mean
         double fft_max = spectrum[0];
-        double fft_mean = spectrum[0];
+        double fft_mean = (double)spectrum[0]/(double)FFTLEN;
+        double fft_std_dev = 0;
         for(int i=1; i<FFTLEN; i++)
         {
             fft_mean += (double)spectrum[i]/(double)FFTLEN;
             if(spectrum[i]>fft_max)
                 fft_max = spectrum[i];
         }
-        double peakiness = fft_max/fft_mean;
-
-        /// Display pitches, and delay
-        if(peakiness>1100)
+        for(int i=1; i<FFTLEN; i++)
         {
-            std::cout<<"\rPitches Identified: "<<notenames<<"             ";
-            SDL_Delay(holdMicroseconds);
+            double diff = (spectrum[i] - fft_mean);
+            fft_std_dev += diff*diff/(double)FFTLEN;
         }
-        else
-            SDL_Delay(delayMicroseconds);
+        fft_std_dev = sqrt(fft_std_dev);
+        double peakiness = fft_std_dev/fft_mean;
 
+        /// Display pitches, only if spectrum was peaky (if peaky, chord has probably been played)
+        if(peakiness>12)
+            std::cout<<"\r"<<displaystring<<"                         ";
+
+        SDL_Delay(delayMicroseconds);
     }
 }

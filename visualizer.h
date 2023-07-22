@@ -3,7 +3,9 @@
 #include <complex>
 #include <windows.h>
 #include <SDL2/SDL.h>
+
 #include "helper.h"
+#include "chordDictionary.h"
 
 /**
 --------------------------------------
@@ -57,5 +59,4 @@ void startAutoTuner(AudioQueue &MainAudioQueue, int iterations, int delayMicrose
 startChordSpeller() finds frequency peaks and prints out their pitch names
 **/
 
-void startChordSpeller(AudioQueue &MainAudioQueue, int iterations, int delayMicroseconds = 10,
-                       int holdMicroseconds = 500, int max_notes = 5);
+void startChordGuesser(AudioQueue &MainAudioQueue, int iterations, int delayMicroseconds = 10, int max_notes = 4);
