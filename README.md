@@ -1,6 +1,6 @@
 # console-audioSpectra
-Printing spectral histograms of incoming audio to console.
-Essentially an excuse to learn and implement the (simplest version of the) FFT algorithm.
+Printing spectral histograms of incoming audio to console, and some basic pitch and chord recognition algorithms.
+Started as an excuse to learn and implement the (simplest version of the) FFT.
 
 Uses SDL2 to record audio and performs FFT on it. Then "plots" a spectral histogram to the console with linear, semilog, or log-log scaling. And repeat.
 
