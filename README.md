@@ -22,7 +22,7 @@ Tuner display is a needle-and-dial type, but the needle stays fixed and the dial
 <img width="960" alt="sc3" src="https://github.com/RandomVertebrate/console-audioSpectra/assets/54997017/25d0b8dc-2f5f-4e90-984d-bebde7e2624c">
 
 ## Chord Guesser
-This attempts to name a chord by assigning pitch names to spectral spikes. Hit-or-miss, but often guesses something close-sounding at least.
+This attempts to name a chord by assigning pitch names to spectral spikes. Hit-or-miss, but often guesses something at least close-sounding.
 
 <img width="960" alt="sc7" src="https://github.com/RandomVertebrate/console-audioSpectra/assets/54997017/8cb0062b-b8ca-4028-bb6c-99fa6b5cb089">
 <img width="960" alt="sc6" src="https://github.com/RandomVertebrate/console-audioSpectra/assets/54997017/ee3d1edc-a2d4-48cf-ba8d-fa0c7a24b666">
