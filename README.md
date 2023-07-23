@@ -11,7 +11,7 @@ Uses `GetConsoleScreenBufferInfo()` to find console dimensions and scale graph a
 ## Spectral Guitar Tuner Mode
 Guitar tuner mode is semilog scaling that wraps around at the octave.
 i.e., The coefficient of 55Hz (A1) adds to 110Hz (A2), 220Hz (A3) etc.
-Octave-marking information is thus effectively discarded, but information of flatness or sharpness is retained.
+Octave-marking information is thus effectively discarded, but information of flatness or sharpness is retained. Logic explained in [YouTube Video](https://youtu.be/Ufx_nrxLhq0).
 
 <img width="960" alt="sc2" src="https://github.com/RandomVertebrate/console-audioSpectra/assets/54997017/4ef75b59-4d2c-492f-a8ed-6b29b1e8675f">
 
