@@ -28,10 +28,6 @@ chord transpose_chord(chord old_chord, int semitones_up);
 A_root_chords will be transposed up to find all other chords.
 i.e., A_root_chords defines all chord types that the program will look for.
 
-Chords with greater numbers of notes should appear earlier, as should chords
-less likely to occur. This way more likely outcomes (later entries) get
-preference.
-
 NUM_CHORD_TYPES should reflect how many chords are in the array below.
 
 All chords must be defined in root position.
