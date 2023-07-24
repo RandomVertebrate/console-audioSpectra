@@ -1,8 +1,31 @@
 # console-audioSpectra
 Printing spectral histograms of incoming audio to console, and basic pitch detection and chord guessing algorithms.
 Started as an excuse to learn and implement the (simplest version of the) FFT.
+Uses SDL2 to record audio and performs FFT on it. Then interprets and/or visualizes FFT results in hopefully interesting ways.
 
-Uses SDL2 to record audio and performs FFT on it. Then "plots" a spectral histogram to the console with linear, semilog, or log-log scaling. And repeat.
+**VISUALIZER OPTIONS**
+
+**Scaled Spectrum**
+
+1. Fixed semilog
+2. Fixed linear
+3. Fixed log-log
+4. Adaptive semilog
+5. Adaptive linear
+6. Adaptive log-log
+
+**Wrapped Spectrum  (Spectral Guitar Tuner)**
+
+7. Fixed
+8. Adaptive
+
+**Music Algorithms**
+
+9. Pitch recognition (automatic tuner)
+10. Chord Guesser
+
+## Scaled Spectrum Mode
+"Plots" a spectral histogram to the console with linear, semilog, or log-log scaling. And repeat.
 
 Uses `GetConsoleScreenBufferInfo()` to find console dimensions and scale graph accordingly. Uses `system("cls")` to refresh the console between frames. Which is not great, but eh.
 
