@@ -24,7 +24,8 @@ Tuner display is a needle-and-dial type, but the needle stays fixed and the dial
 ## Chord Guesser
 This attempts to name a chord by assigning pitch names to spectral spikes. Hit-or-miss, but often guesses something at least close-sounding.
 
-<img width="960" alt="sc7" src="https://github.com/RandomVertebrate/console-audioSpectra/assets/54997017/8cb0062b-b8ca-4028-bb6c-99fa6b5cb089">
-<img width="960" alt="sc6" src="https://github.com/RandomVertebrate/console-audioSpectra/assets/54997017/ee3d1edc-a2d4-48cf-ba8d-fa0c7a24b666">
-<img width="960" alt="sc5" src="https://github.com/RandomVertebrate/console-audioSpectra/assets/54997017/45917220-6752-4296-9ca5-e37e30c80c5d">
-<img width="960" alt="sc4" src="https://github.com/RandomVertebrate/console-audioSpectra/assets/54997017/52a18b76-67f5-4455-aca0-6c2ce125a57e">
+<img width="960" alt="sc4" src="https://github.com/RandomVertebrate/console-audioSpectra/assets/54997017/a2cbe5c5-b5a3-4183-9ec7-f45faf34fbf9">
+<img width="960" alt="sc8" src="https://github.com/RandomVertebrate/console-audioSpectra/assets/54997017/875ae46c-22ed-4d9e-808d-43f796db4603">
+<img width="960" alt="sc9" src="https://github.com/RandomVertebrate/console-audioSpectra/assets/54997017/fba01e4a-6957-4c6d-9cb0-1f4b33185a86">
+<img width="960" alt="sc7" src="https://github.com/RandomVertebrate/console-audioSpectra/assets/54997017/4071b711-6255-43e8-82ae-c2c67c8b59c6">
+<img width="960" alt="sc5" src="https://github.com/RandomVertebrate/console-audioSpectra/assets/54997017/468777dc-5ced-4fcb-9f65-cacc4194c2d6">
