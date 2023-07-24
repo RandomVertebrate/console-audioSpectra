@@ -586,8 +586,11 @@ void startChordGuesser(AudioQueue &MainAudioQueue, int iterations, int delayMicr
         /// Now preparing display string
         char displaystring[100];
         int chnum = 0;
+        /// Add chord name
         chnum += what_chord_is(displaystring, unique_chord_tones, num_unique_chord_tones);
-        displaystring[chnum++] = ' ';
+        /// Pad with spaces
+        while(chnum<CHORD_NAME_SIZE+1) displaystring[chnum++] = ' ';
+        /// Add note names
         displaystring[chnum++] = '(';
         for(int i=0; i<notes_found; i++)
         {
@@ -595,6 +598,7 @@ void startChordGuesser(AudioQueue &MainAudioQueue, int iterations, int delayMicr
             displaystring[chnum++] = ' ';
         }
         displaystring[chnum++] = ')';
+        /// Null-terminate
         displaystring[chnum++] = '\0';
 
         /// Ad-hoc measure of peakiness of spectrum: peakiness = max/mean

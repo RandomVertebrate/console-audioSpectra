@@ -5,18 +5,18 @@
 #define NUM_CHORD_TYPES 10
 
 /**
+INFO
 
-NOTE REPRESENTATION: PITCH NUMBERS
-
-Here, notes/pitches are represented by numbers as follows:
+Notes/pitches are represented by pitch numbers:
 1 = A, 2 = A#, 3 = B etc.
 
+All chords must be defined in root position.
 **/
 
 struct chord
 {
-    int notes[CHORD_MAX_NOTES];
     int num_notes;
+    int notes[CHORD_MAX_NOTES];                                             /// Must be in root position
     char name[CHORD_NAME_SIZE];
 
     bool contains(int notes_in[], int num_notes_in);
@@ -27,22 +27,27 @@ chord transpose_chord(chord old_chord, int semitones_up);
 /**
 A_root_chords will be transposed up to find all other chords.
 i.e., A_root_chords defines all chord types that the program will look for.
+
 Chords with greater numbers of notes should appear earlier, as should chords
 less likely to occur. This way more likely outcomes (later entries) get
 preference.
+
+NUM_CHORD_TYPES should reflect how many chords are in the array below.
+
+All chords must be defined in root position.
 **/
 static chord A_root_chords[] = {
 
-    {{1, 5, 8, 12}, 4, "A Maj7"},
-    {{1, 4, 8, 11}, 4, "A min7"},
-    {{1, 5, 8, 11}, 4, "A dom7"},
-    {{1, 5, 8, 12}, 4, "A minMaj7"},
-    {{1, 4, 7}, 3, "A dim"},
-    {{1, 6, 8}, 3, "A sus4"},
-    {{1, 3, 8}, 3, "A sus2"},
-    {{1, 5, 8}, 3, "A Maj"},
-    {{1, 4, 8}, 3, "A min"},
-    {{1, 8}, 2, "A 5"}
+    {4, {1, 5, 8, 12}, "A Maj7"},
+    {4, {1, 4, 8, 11}, "A min7"},
+    {4, {1, 5, 8, 11}, "A dom7"},
+    {4, {1, 4, 8, 12}, "A minMaj7"},
+    {3, {1, 4, 7}, "A dim"},
+    {3, {1, 6, 8}, "A sus4"},
+    {3, {1, 3, 8}, "A sus2"},
+    {3, {1, 5, 8}, "A Maj"},
+    {2, {1, 4, 8}, "A min"},
+    {2, {1, 8}, "A 5"}
 
 };
 

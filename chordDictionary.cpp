@@ -1,4 +1,5 @@
 #include "chordDictionary.h"
+#include "helper.h"
 
 /// Checks if a chord contains ALL the input notes
 bool chord::contains(int notes_in[], int num_notes_in)
@@ -21,8 +22,6 @@ bool chord::contains(int notes_in[], int num_notes_in)
 /// Transpose a chord up by a certain number of semitones (-ve semitones_up means transpose down)
 chord transpose_chord(chord old_chord, int semitones_up)
 {
-    char note_names[][3] = {"A ", "A#", "B ", "C ", "C#", "D ", "D#", "E ", "F ", "F#", "G ", "G#"};
-
     /// If shift is zero return chord unchanged
     if(semitones_up == 0)
         return old_chord;
@@ -48,8 +47,9 @@ chord transpose_chord(chord old_chord, int semitones_up)
     /// i.e., with the letter name corresponding to the first element of the chord
     for(int i=0; i<CHORD_NAME_SIZE; i++)
         new_chord.name[i] = old_chord.name[i];
-    new_chord.name[0] = note_names[new_chord.notes[0]-1][0];
-    new_chord.name[1] = note_names[new_chord.notes[0]-1][1];
+
+    new_chord.name[1] = ' ';
+    pitchName(new_chord.name, new_chord.notes[0]);
 
     return new_chord;
 }
@@ -67,15 +67,49 @@ void initialize_chord_dictionary()
 /// and writes the chord's name to char* name_out
 int what_chord_is(char* name_out, int notes[], int num_notes)
 {
-    /// Iterate through all_chords looking for a chord that contains all input notes
-    int chord_index = -1;
+    int chord_index;                                                /// This will store the guess (its index in all_chords[])
+
+    /// Iterate through all_chords looking for chords that contains all input notes
+    int candidates[NUM_CHORD_TYPES*12];
+    int num_candidates = 0;
     for(int i=0; i<NUM_CHORD_TYPES*12; i++)
+        /// If a chord is found that contains all input notes, add its index to candidates[]
         if(all_chords[i].contains(notes, num_notes))
-            chord_index = i;
+            candidates[num_candidates++] = i;
 
     /// If not found return 0
-    if(chord_index == -1)
+    if(num_candidates == 0)
         return 0;
+
+    /// If there is exactly one candidate, it is the answer.
+    if(num_candidates == 1)
+        chord_index = candidates[0];
+    /// Otherwise, trim down the list of candidates by the following criteria (in order of importance):
+    /// 1. Based on chord::num_notes (smaller preferred).
+    /// 2. Based on root note.
+    else
+    {
+        /// Find minimum chord size in list of candidates
+        int min_size = all_chords[candidates[0]].num_notes;
+        for(int i=0; i<num_candidates; i++)
+            if(all_chords[candidates[i]].num_notes < min_size)
+                min_size = all_chords[candidates[i]].num_notes;
+        /// Disregard (delete) all candidates with more notes than min_size
+        for(int i=0; i<num_candidates; i++)
+            if(all_chords[candidates[i]].num_notes > min_size)
+            {
+                for(int j=i; j<num_candidates-1; j++)
+                    candidates[j] = candidates[j+1];
+                num_candidates--;
+            }
+        /// Now guess the first remaining candidate by default
+        chord_index = candidates[0];
+        /// But if the root note of some other candidate matches the first input note, guess that instead.
+        for(int i=0; i<num_candidates; i++)
+            if(all_chords[candidates[i]].notes[0] == notes[0])
+                chord_index = candidates[i];
+
+    }
 
     /// Write name of chord found to name_out
     int name_length = 0;
