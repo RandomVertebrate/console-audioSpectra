@@ -2,7 +2,7 @@
 
 #define CHORD_NAME_SIZE 15
 #define CHORD_MAX_NOTES 5
-#define NUM_CHORD_TYPES 10
+#define NUM_CHORD_TYPES 11
 
 /**
 INFO
@@ -34,6 +34,7 @@ All chords must be defined in root position.
 **/
 static chord A_root_chords[] = {
 
+    {4, {1, 5, 8, 3}, "A add9"},
     {4, {1, 5, 8, 12}, "A Maj7"},
     {4, {1, 4, 8, 11}, "A min7"},
     {4, {1, 5, 8, 11}, "A dom7"},
