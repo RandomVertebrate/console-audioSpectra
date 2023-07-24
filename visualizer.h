@@ -40,7 +40,7 @@ void SpectralTuner(AudioQueue &MainAudioQueue, int consoleWidth, int consoleHeig
 ------------------
 ----Auto Tuner----
 ------------------
-startAutoTuner() is a more traditional guitar tuner. It performs internal pitch
+AutoTuner() is a more traditional guitar tuner. It performs internal pitch
 detection and displays a stationary "needle" and moving note-name "dial". Tuning
 can be performed by aligning the note name to the needle.
 
