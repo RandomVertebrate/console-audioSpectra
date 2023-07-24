@@ -55,8 +55,9 @@ pitch names are to be shown on screen at once.
 void AutoTuner(AudioQueue &MainAudioQueue, int consoleWidth, bool printNeedle = true, int span_semitones = 4);
 
 /**
-----Chord Speller----
-startChordSpeller() finds frequency peaks and prints out their pitch names
+----Chord Guesser----
+ChordGuesser() finds frequency peaks and prints pitch names and, if found, a
+chord name as well.
 **/
 
 void ChordGuesser(AudioQueue &MainAudioQueue, int max_notes = 4);
