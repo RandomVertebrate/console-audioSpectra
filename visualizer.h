@@ -24,17 +24,17 @@ graphScale sets the vertical scale of data relative to the console window height
 Irrelevant if adaptive is enabled.
 **/
 
-void startSemilogVisualizer(int minfreq, int maxfreq, AudioQueue &MainAudioQueue, int iterations, bool adaptive = false,
-                            int delayMicroseconds = 10, float graphScale = 0.0008);
+void SemilogVisualizer(int minfreq, int maxfreq, AudioQueue &MainAudioQueue, int consoleWidth, int consoleHeight,
+                       bool adaptive = false, float graphScale = 0.0008);
 
-void startLinearVisualizer(int minfreq, int maxfreq,  AudioQueue &MainAudioQueue, int iterations, bool adaptive = false,
-                           int delayMicroseconds = 10, float graphScale = 0.0008);
+void LinearVisualizer(int minfreq, int maxfreq, AudioQueue &MainAudioQueue, int consoleWidth, int consoleHeight,
+                       bool adaptive = false, float graphScale = 0.0008);
 
-void startLoglogVisualizer(int minfreq, int maxfreq,  AudioQueue &MainAudioQueue, int iterations, bool adaptive = false,
-                           int delayMicroseconds = 10, float graphScale = 0.0008);
+void LoglogVisualizer(int minfreq, int maxfreq, AudioQueue &MainAudioQueue, int consoleWidth, int consoleHeight,
+                       bool adaptive = false, float graphScale = 0.0008);
 
-void startTuner( AudioQueue &MainAudioQueue, int iterations, bool adaptive = false, int delayMicroseconds = 10,
-                           float graphScale = 0.0008);
+void SpectralTuner(AudioQueue &MainAudioQueue, int consoleWidth, int consoleHeight, bool adaptive = false,
+                   float graphScale = 0.0008);
 
 /**
 ------------------
@@ -52,11 +52,11 @@ span_semitones sets the span (and precision) of the dial display, i.e. how many
 pitch names are to be shown on screen at once.
 **/
 
-void startAutoTuner(AudioQueue &MainAudioQueue, int iterations, int delayMicroseconds = 10, int span_semitones = 4);
+void AutoTuner(AudioQueue &MainAudioQueue, int consoleWidth, bool printNeedle = true, int span_semitones = 4);
 
 /**
 ----Chord Speller----
 startChordSpeller() finds frequency peaks and prints out their pitch names
 **/
 
-void startChordGuesser(AudioQueue &MainAudioQueue, int iterations, int delayMicroseconds = 10, int max_notes = 4);
+void ChordGuesser(AudioQueue &MainAudioQueue, int max_notes = 4);

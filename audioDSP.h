@@ -1,7 +1,6 @@
 #include <iostream>
 #include <math.h>
 #include <complex>
-#include <windows.h>
 
 #define RATE 44100                      /// Sample rate
 #define CHUNK 64                        /// Buffer size

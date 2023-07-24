@@ -51,6 +51,9 @@ static chord A_root_chords[] = {
 /// After initialization, this will hold all transpositions of A_root_chords
 static chord all_chords[NUM_CHORD_TYPES*12];
 
+/// Initialization flag
+static bool chord_dictionary_initialized = false;
+
 /// Initialization function: Performs transpositions to populate all_chords from A_root_chords
 void initialize_chord_dictionary();
 

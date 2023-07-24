@@ -2,8 +2,11 @@
 #include <math.h>
 #include <complex>
 #include <windows.h>
+#include <conio.h>
 #include <SDL2/SDL.h>
 #include "visualizer.h"
+
+#define REFRESH_TIME 10                 /// Time in milliseconds. Sets (maximum) refresh rate.
 
 float echoVolume;                       /// Anything recorded is immediately (-ish) played back at this volume.
 
@@ -35,6 +38,15 @@ void PlayCallback(void* userdata, Uint8* stream, int streamLength)
     MainAudioQueue.pop((sample*)stream, length/sizeof(sample), ::echoVolume);
 }
 
+/// Function to determine whether x key is currently pressed (exit condition)
+bool x_pressed()
+{
+    if(_kbhit())
+        if(getch()=='x')
+            return 1;
+    return 0;
+}
+
 int main(int argc, char** argv)
 {
     SDL_Init(SDL_INIT_AUDIO);                                       /// Initialize SDL audio
@@ -62,6 +74,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    /// Unpause recording and playback devices
     SDL_PauseAudioDevice(RecDevice, 0);                             /// Start recording
     SDL_Delay(2000);                                                /// Allow some time for audio queue to fill up
     SDL_PauseAudioDevice(PlayDevice, 0);                            /// Start playback
@@ -93,30 +106,109 @@ int main(int argc, char** argv)
     }
     std::cout<<"\nEnter echo volume (0 = no echo): ";
     std::cin>>::echoVolume;
-    switch(ans)
+
+    int consoleWidth = 0;
+    int consoleHeight = 0;
+    CONSOLE_SCREEN_BUFFER_INFO csbi;                                /// Console object to retrieve console window size for graph scaling
+    int new_consoleWidth;
+    int new_consoleHeight;
+
+    std::cout<<"\nStarting...\nWhen you wish to exit, press x";
+    SDL_Delay(1000);
+    system("cls");
+
+    /// Screen refresh loop. Run for at least 10 minutes or until x is pressed
+    for(int i=0; i<600000/REFRESH_TIME; i++)
     {
-        case 1 : startSemilogVisualizer(lim1, lim2, MainAudioQueue, 1000); break;
-        case 2 : startLinearVisualizer(lim1, lim2, MainAudioQueue, 1000); break;
-        case 3 : startLoglogVisualizer(lim1, lim2, MainAudioQueue, 1000); break;
-        case 4 : startSemilogVisualizer(lim1, lim2, MainAudioQueue, 1000, true); break;
-        case 5 : startLinearVisualizer(lim1, lim2, MainAudioQueue, 1000, true); break;
-        case 6 : startLoglogVisualizer(lim1, lim2, MainAudioQueue, 1000, true); break;
-        case 7 : startTuner(MainAudioQueue, 1000); break;
-        case 8 : startTuner(MainAudioQueue, 1000, true); break;
-        case 9 : startAutoTuner(MainAudioQueue, 1000); break;
-        case 10: startChordGuesser(MainAudioQueue, 1000); break;
-        default: return 0;
+        bool windowChanged = false;
+
+        if(i%10==0)
+        {
+            GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+            new_consoleWidth = csbi.srWindow.Right - csbi.srWindow.Left;
+            new_consoleHeight = csbi.srWindow.Bottom - csbi.srWindow.Top;
+
+            if(new_consoleHeight!=consoleHeight || new_consoleWidth!=consoleWidth)
+                windowChanged = true;
+
+            consoleWidth = new_consoleWidth;
+            consoleHeight = new_consoleHeight;
+        }
+
+        switch(ans)
+        {
+            case 1 :
+                {
+                    SemilogVisualizer(lim1, lim2, MainAudioQueue, consoleWidth, consoleHeight);
+                    SDL_Delay(REFRESH_TIME);
+                    break;
+                }
+            case 2 :
+                {
+                    LinearVisualizer(lim1, lim2, MainAudioQueue, consoleWidth, consoleHeight);
+                    SDL_Delay(REFRESH_TIME);
+                    break;
+                }
+            case 3 :
+                {
+                    LoglogVisualizer(lim1, lim2, MainAudioQueue, consoleWidth, consoleHeight);
+                    SDL_Delay(REFRESH_TIME);
+                    break;
+                }
+            case 4 :
+                {
+                    SemilogVisualizer(lim1, lim2, MainAudioQueue, consoleWidth, consoleHeight, true);
+                    SDL_Delay(REFRESH_TIME);
+                    break;
+                }
+            case 5 :
+                {
+                    LinearVisualizer(lim1, lim2, MainAudioQueue, consoleWidth, consoleHeight, true);
+                    SDL_Delay(REFRESH_TIME);
+                    break;
+                }
+            case 6 :
+                {
+                    LoglogVisualizer(lim1, lim2, MainAudioQueue, consoleWidth, consoleHeight, true);
+                    SDL_Delay(REFRESH_TIME);
+                    break;
+                }
+            case 7 :
+                {
+                    SpectralTuner(MainAudioQueue, consoleWidth, consoleHeight);
+                    SDL_Delay(REFRESH_TIME);
+                    break;
+                }
+            case 8 :
+                {
+                    SpectralTuner(MainAudioQueue, consoleWidth, consoleHeight, true);
+                    SDL_Delay(REFRESH_TIME);
+                    break;
+                }
+            case 9 :
+                {
+                    if(windowChanged)
+                        system("cls");
+                    AutoTuner(MainAudioQueue, consoleWidth, windowChanged);
+                    SDL_Delay(REFRESH_TIME);
+                    break;
+                }
+            case 10:
+                {
+                    ChordGuesser(MainAudioQueue);
+                    SDL_Delay(REFRESH_TIME);
+                    break;
+                }
+            default: return 0;
+        }
+
+        if(x_pressed())
+            break;
     }
 
     /// Close audio devices
     SDL_CloseAudioDevice(PlayDevice);
     SDL_CloseAudioDevice(RecDevice);
-    /**
-    ISSUE:
-    no clean way to exit during execution.
-    Audio devices expected not to be closed properly if the process is killed.
-    Thankfully Windows seems to make it alright (daemons or something idk)
-    **/
 
     return 0;
 }

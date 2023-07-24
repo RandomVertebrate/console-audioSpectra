@@ -1,7 +1,5 @@
 #include <iostream>
 #include <math.h>
-#include <complex>
-#include <windows.h>
 #include "audioDSP.h"
 
 void show_bargraph(int bars[], int n_bars, int height=50,               /// Histogram plotter

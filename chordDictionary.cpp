@@ -60,6 +60,7 @@ void initialize_chord_dictionary()
     for(int i=0; i<NUM_CHORD_TYPES; i++)
         for(int j=0; j<12; j++)
             all_chords[i*12+j] = transpose_chord(A_root_chords[i], j);
+    chord_dictionary_initialized = true;
 }
 
 /// Given a set of notes (pitch numbers 1 = A, 2 = A#, 3 = B, etc.),
