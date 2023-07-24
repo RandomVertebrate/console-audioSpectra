@@ -1,6 +1,7 @@
 # console-audioSpectra
 - Printing spectral histograms of incoming audio to console
 - Basic pitch detection and chord guessing algorithms
+
 Started as an excuse to learn and implement the (simplest version of the) FFT.
 Uses SDL2 to record audio and performs FFT on it. Then interprets and/or visualizes FFT results.
 
