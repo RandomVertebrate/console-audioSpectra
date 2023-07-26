@@ -39,11 +39,10 @@ void PlayCallback(void* userdata, Uint8* stream, int streamLength)
 }
 
 /// Function to determine whether x key is currently pressed (exit condition)
-bool x_pressed()
+char capture_button_press()
 {
     if(_kbhit())
-        if(getch()=='x')
-            return 1;
+        return getch();
     return 0;
 }
 
@@ -81,6 +80,9 @@ int main(int argc, char** argv)
 
     /// Menu
     int ans, lim1, lim2;
+
+    MAIN_MENU:
+
     std::cout<<"VISUALIZER OPTIONS\n"
         <<"\nScaled Spectrum\n----------------"
         <<"\n1 . Fixed semilog"
@@ -113,7 +115,7 @@ int main(int argc, char** argv)
     int new_consoleWidth;
     int new_consoleHeight;
 
-    std::cout<<"\nStarting...\nWhen you wish to exit, press x";
+    std::cout<<"\nStarting...\nDuring execution, press x to exit or m to return to menu";
     SDL_Delay(1000);
     system("cls");
 
@@ -202,8 +204,14 @@ int main(int argc, char** argv)
             default: return 0;
         }
 
-        if(x_pressed())
+        char button_press = capture_button_press();
+        if(button_press == 'x')
             break;
+        else if(button_press == 'm')
+        {
+            system("cls");
+            goto MAIN_MENU;
+        }
     }
 
     /// Close audio devices

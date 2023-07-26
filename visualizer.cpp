@@ -372,7 +372,7 @@ void AutoTuner(AudioQueue &MainAudioQueue, int consoleWidth, bool printNeedle, i
     MainAudioQueue.peekFreshData(workingBuffer, FFTLEN);
     FindFrequencyContent(spectrum, workingBuffer, FFTLEN, 0.00005);
 
-    int num_spikes = 5;                                            /// Number of fft spikes to consider for pitch deduction
+    int num_spikes = 5;                                             /// Number of fft spikes to consider for pitch deduction
     int SpikeLocs[100];                                             /// Array to store indices in spectrum[] of fft spikes
     float SpikeFreqs[100];                                          /// Array to store frequencies corresponding to spikes
 

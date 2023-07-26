@@ -40,7 +40,7 @@ void SpectralTuner(AudioQueue &MainAudioQueue, int consoleWidth, int consoleHeig
 ------------------
 ----Auto Tuner----
 ------------------
-AutoTuner() is a more traditional guitar tuner. It performs internal pitch
+startAutoTuner() is a more traditional guitar tuner. It performs internal pitch
 detection and displays a stationary "needle" and moving note-name "dial". Tuning
 can be performed by aligning the note name to the needle.
 
@@ -55,9 +55,8 @@ pitch names are to be shown on screen at once.
 void AutoTuner(AudioQueue &MainAudioQueue, int consoleWidth, bool printNeedle = true, int span_semitones = 4);
 
 /**
-----Chord Guesser----
-ChordGuesser() finds frequency peaks and prints pitch names and, if found, a
-chord name as well.
+----Chord Speller----
+startChordSpeller() finds frequency peaks and prints out their pitch names
 **/
 
 void ChordGuesser(AudioQueue &MainAudioQueue, int max_notes = 4);
