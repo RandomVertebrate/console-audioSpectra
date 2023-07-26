@@ -171,7 +171,7 @@ void Find_n_Largest(int* output, sample* input, int n_out, int n_in, bool ignore
                 if(output[j] == i-1 && j!=min_pos)                      /// If part of clump
                 {
                     part_of_clump = true;                               /// Set clump flag and also
-                    OutputClumpMate = output[j];                        /// store output index of clump-mate, i.e., previous input index
+                    OutputClumpMate = j;                                /// store output index of clump-mate, i.e., previous input index
                 }
             }
         }
