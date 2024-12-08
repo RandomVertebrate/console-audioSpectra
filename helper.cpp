@@ -66,8 +66,8 @@ float approx_hcf(float inputs[], int num_inputs, int max_iter, int accuracy_thre
     {
         float newinputs[2];
         newinputs[0] = inputs[0];
-        newinputs[1] = approx_hcf(inputs+1, num_inputs-1);
-        float ans = approx_hcf(newinputs, 2);
+        newinputs[1] = approx_hcf(inputs+1, num_inputs-1, max_iter-1, accuracy_threshold);
+        float ans = approx_hcf(newinputs, 2, max_iter-1, accuracy_threshold);
         return ans;
     }
 

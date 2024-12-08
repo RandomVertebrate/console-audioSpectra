@@ -381,7 +381,7 @@ void AutoTuner(AudioQueue &MainAudioQueue, int consoleWidth, bool printNeedle, i
     for(int i=0; i<num_spikes; i++)                                 /// Find spike frequencies (assumed to be harmonics)
         SpikeFreqs[i] = index2freq(SpikeLocs[i]);
 
-    float pitch = approx_hcf(SpikeFreqs, num_spikes, 5, 50);        /// Find pitch as approximate HCF of spike frequencies
+    float pitch = approx_hcf(SpikeFreqs, num_spikes, 5, 5);        /// Find pitch as approximate HCF of spike frequencies
 
     if(pitch)                                                       /// If pitch found, update notenames and print
     {
